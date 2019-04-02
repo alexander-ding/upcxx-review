@@ -5,8 +5,8 @@
 #include <ctime> 
 
 int main(int argc, char *argv[]) {
-    int N_array = 1000000;
-    int N_test = 100000000;
+    int N_array = 100000;
+    int N_test = 1000000;
     int* A = new int[N_array];
     int* B = new int[N_array];
     int* R = new int[N_test];

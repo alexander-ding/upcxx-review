@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     init();
     const int N_array = 100000;
     const int N_test = 1000000;
-    const int PROGRESS_EVERY_N = 20;
+    const int PROGRESS_EVERY_N = 200;
 
     int N_array_local = int(N_array / rank_n());
     int N_test_local = int(N_test / rank_n());
