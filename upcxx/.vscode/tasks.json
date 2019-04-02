@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558 
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Build current file",
+            "command": "upcxx",
+            "args": [
+                "-O",
+                "${file}",
+                "-o",
+                "${fileBasenameNoExtension}"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Run current file's compiled version",
+            "command": "upcxx-run",
+            "args": [
+                "-n", "4",
+                "./${fileBasenameNoExtension}",
+            ],
+            "group": "test"
+        },
+    ]
+}

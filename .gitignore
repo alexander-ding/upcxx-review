@@ -1,0 +1,7 @@
+# For binary
+* 
+!*.*
+!*/
+
+.DS_Store
+ipch
