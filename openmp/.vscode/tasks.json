@@ -11,6 +11,7 @@
                 "-fopenmp",
                 "-std=c++11",
                 "${file}",
+                "graph.cpp",
                 "-o", "${fileBasenameNoExtension}"
             ],
             "group": "build"
@@ -22,6 +23,7 @@
             "args": [
                 "-std=c++11",
                 "${file}",
+                "graph.cpp",
                 "-o", "${fileBasenameNoExtension}_no_mp"
             ],
             "group": "build"
