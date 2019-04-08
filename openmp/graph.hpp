@@ -14,14 +14,13 @@ class Graph {
     vector<vector<int>> edges_from;
 
     public:
-        int num_nodes;
-        int num_edges;
         Graph(char *path);
+        int num_nodes() const { return offsets.size(); };
+        int num_edges() const { return edges.size(); };
+        int out_degree(int n) const;
+        vector<int> out_neighbors(int n) const;
 
-        int out_degree(int n);
-        vector<int> out_neighbors(int n);
-
-        vector<int> in_neighbors(int n);
+        vector<int> in_neighbors(int n) const;
 };
 
 #endif // GRAPH_H_
