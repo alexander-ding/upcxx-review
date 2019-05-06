@@ -10,8 +10,6 @@ using namespace std;
 class Graph {
     vector<int> offsets;
     vector<int> edges;
-    vector<vector<int>> edges_to;
-    vector<vector<int>> edges_from;
 
     public:
         Graph(char *path);
