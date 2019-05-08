@@ -80,16 +80,18 @@ int main(int argc, char *argv[]) {
     }
 
     const float tolerance = 1e-4;
-    const int max_iters = 100;
+    const int max_iters = 10;
 
     Graph g(argv[1]);
+    auto time_before = std::chrono::system_clock::now();
     vector<float> scores = pagerank(g, max_iters, tolerance);
-    for (int i = 0; i < scores.size(); i++) {
-        cout << i << ": " << scores[i] << endl;
-    }
-    if (verify(scores, g, max_iters, tolerance)) {
+    auto time_after = std::chrono::system_clock::now();
+    std::chrono::duration<double> delta_time = time_after - time_before;
+    std::cout << "Time: " << delta_time.count() << "s" << std::endl;
+    
+    /*if (verify(scores, g, max_iters, tolerance)) {
         cout << "Succeeds" << endl;
     } else {
         cout << "Fails" << endl;
-    }
+    }*/
 }

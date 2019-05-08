@@ -111,27 +111,36 @@ bool verify(vector<float> &scores_compare, Graph &g, int max_iters, float epsilo
 
 int main(int argc, char *argv[]) {
     upcxx::init();
+
     Graph g;
     if (rank_me() == 0) {
-        string s = string("test.txt");
-        g.populate(s.c_str());
-    }
-    barrier();
-    int max_iters = 100;
-    const float tolerance = 1e-4;
-    auto scores = pagerank(g, max_iters);
-    barrier();
-    if (rank_me()==0) {
-        for (int i = 0; i < scores.size(); i++) {
-            cout << i << ": " << scores[i] << endl;
+        if (argc != 2) {
+            cout << "Usage: ./pagerank <path_to_graph>" << endl;
+            exit(-1);
         }
+        g.populate(argv[1]);
+    }
 
-        // also verify
+    barrier();
+
+    int max_iters = 10;
+    const float tolerance = 1e-4;
+    auto time_before = std::chrono::system_clock::now();
+    auto scores = pagerank(g, max_iters);
+
+    barrier();
+
+    auto time_after = std::chrono::system_clock::now();
+    std::chrono::duration<double> delta_time = time_after - time_before;
+    
+    if (rank_me()==0) {
+        std::cout << "Time: " << delta_time.count() << "s" << std::endl;
+        /*// also verify
         if (verify(scores, g, max_iters, tolerance)) {
             cout << "Success!" << endl;
         } else {
             cout << "Fails!" << endl;
-        }
+        }*/
     }
     upcxx::finalize();
 }
