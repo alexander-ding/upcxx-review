@@ -5,7 +5,7 @@ def run_mp(name):
     os.system("./openmp/{}".format(name))
 
 def run_upcxx(name):
-    os.system("upcxx-run -n 1 ./upcxx/{}".format(name))
+    os.system("upcxx-run -n 4 ./upcxx/{}".format(name))
 
 def hello_mp():
     run_mp('hello')
@@ -33,7 +33,7 @@ def pagerank_mp():
     graph(10, 100)
     graph(100, 1000)
     graph(1000, 10000)
-    #graph(10000, 100000)
+    graph(10000, 100000)
 
 def pagerank_upcxx():
     def graph(n, m):
@@ -43,7 +43,7 @@ def pagerank_upcxx():
     graph(10, 100)
     graph(100, 1000)
     graph(1000, 10000)
-    #graph(10000, 100000)
+    graph(10000, 100000)
 
 
 names = ['hello', 'random_access', 'pagerank']

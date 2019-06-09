@@ -10,6 +10,15 @@
 
 using namespace std;
 
+template <typename T>
+void print_vector(const vector<T> & v) {
+    cout << endl;
+    for (auto i = v.begin(); i != v.end(); ++i) {
+        cout << *i << " ";
+    }
+    cout << endl;
+}
+
 const float damp = 0.85;
 
 vector<float> pagerank(const Graph &g, int max_iters, float epsilon=0) {
@@ -85,6 +94,7 @@ int main(int argc, char *argv[]) {
     Graph g(argv[1]);
     auto time_before = std::chrono::system_clock::now();
     vector<float> scores = pagerank(g, max_iters, tolerance);
+
     auto time_after = std::chrono::system_clock::now();
     std::chrono::duration<double> delta_time = time_after - time_before;
     std::cout << "Time: " << delta_time.count() << "s" << std::endl;

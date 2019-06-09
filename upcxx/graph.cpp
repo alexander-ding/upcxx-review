@@ -17,6 +17,7 @@ Graph::Graph(char *path) : out_offsets(vector<int>()), out_edges(vector<int>()),
     } else {
         rank_end = int(n / rank_n() * (rank_me()+1));
     }
+    num_nodes = n;
 
     vector<int> temp_offsets(n);
     vector<int> temp_edges(m);
@@ -59,7 +60,7 @@ void Graph::_populate(vector<vector<int>> & edges, bool in) {
     for (int i = rank_start; i < rank_end; i++) {
         int offset = edges[i].size();
         if (i != (rank_end-1))
-            local_offsets[i-rank_start+1] = offset;
+            local_offsets[i-rank_start+1] = local_offsets[i-rank_start]+offset;
         for (int j = 0; j < offset; j++) {
             local_edges.push_back(edges[i][j]);
         }
@@ -72,4 +73,63 @@ void Graph::_populate(vector<vector<int>> & edges, bool in) {
         *out_offsets = local_offsets;
         *out_edges = local_edges;
     }
+}
+
+int Graph::in_degree(const int n)  {
+    if ((n >= rank_start) && (n < rank_end)) {
+        return _degree(*in_offsets, n-rank_start, in_edges->size());
+    } else {
+        int rank =  int(n / (num_nodes / rank_n()));
+        auto offsets = in_offsets.fetch(rank).wait();
+        auto edges = in_edges.fetch(rank).wait();
+        return _degree(offsets, n-int(n / rank_n() * rank_me()), edges.size());
+    }
+}
+
+int Graph::out_degree(const int n)  {
+    if ((n >= rank_start) && (n < rank_end)) {
+        return _degree(*out_offsets, n-rank_start, out_edges->size());
+    } else {
+        int rank =  int(n / (num_nodes / rank_n()));
+        auto offsets = out_offsets.fetch(rank).wait();
+        auto edges = out_edges.fetch(rank).wait();
+        return _degree(offsets, n-int(n / rank_n() * rank_me()), edges.size());
+    }
+}
+
+
+int Graph::_degree(vector<int> &offsets, const int n, const int total_edges) {
+    if (n == (offsets.size()-1)) {
+        return total_edges - offsets[offsets.size()-1];
+    }
+    return offsets[n+1] - offsets[n];
+}
+
+vector<int> Graph::in_neighbors(const int n) {
+    if ((n >= rank_start) && (n < rank_end)) {
+        return _neighbors(*in_offsets, *in_edges, n-rank_start);
+    } else {
+        int rank =  int(n / (num_nodes / rank_n()));
+        auto offsets = in_offsets.fetch(rank).wait();
+        auto edges = in_edges.fetch(rank).wait();
+        return _neighbors(offsets, edges, n-int(n / rank_n() * rank_me()));
+    }
+}
+
+vector<int> Graph::out_neighbors(const int n) {
+    if ((n >= rank_start) && (n < rank_end)) {
+        return _neighbors(*out_offsets, *out_edges, n-rank_start);
+    } else {
+        int rank =  int(n / (num_nodes / rank_n()));
+        auto offsets = out_offsets.fetch(rank).wait();
+        auto edges = out_edges.fetch(rank).wait();
+        return _neighbors(offsets, edges, n-int(n / rank_n() * rank_me()));
+    }
+}
+
+vector<int> Graph::_neighbors(vector<int> &offsets, vector<int> &edges, int n) {
+    auto begin = edges.begin() + offsets[n];
+    auto end = (n == (offsets.size()-1)) ? (edges.end()) : (edges.begin() + offsets[n+1]);
+    vector<int> to_return(begin, end);
+    return to_return;
 }
