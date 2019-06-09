@@ -10,6 +10,7 @@
             "args": [
                 "-O",
                 "${file}",
+                "graph.cpp",
                 "-o",
                 "${fileBasenameNoExtension}",
             ],
@@ -20,7 +21,7 @@
             "label": "Run current file's compiled version",
             "command": "upcxx-run",
             "args": [
-                "-n", "4",
+                "-n", "2",
                 "./${fileBasenameNoExtension}",
             ],
             "group": "test"

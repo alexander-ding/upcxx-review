@@ -1,28 +1,33 @@
-#ifndef GRAPH_H_
-#define GRAPH_H_
+#ifndef GRAPH_HPP
+#define GRAPH_HPP
 
-#include <iostream>
-#include <fstream>
+#include <vector>
 #include <upcxx/upcxx.hpp>
 
 using namespace std;
 using namespace upcxx;
 
 class Graph {
-    DVector<int> offsets;
-    DVector<int> edges;
-
+    using dobj_vector_t = dist_object<vector<int>>;
     
-
+    private: 
+        void _populate(vector<vector<int>> & edges, bool in);
     public:
-        Graph();
-        void populate(const char *path);
-        int num_nodes() { return offsets.size(); };
-        int num_edges() { return edges.size();};
-        int out_degree(int n);
+    dobj_vector_t in_offsets;
+    dobj_vector_t in_edges;
+    dobj_vector_t out_offsets;
+    dobj_vector_t out_edges; 
+        int rank_start;
+        int rank_end;
+        // a sequential operation to load the graph. Returns 
+        // upon completion
+        Graph(char* path);
 
-        vector<int> out_neighbors(int n);
-        vector<int> in_neighbors(int n);
+        int in_degree(const int n) const;
+        int out_degree(const int n) const;
+
+        vector<int> in_neighbors(const int n) const;
+        vector<int> out_neighbors(const int n) const;
 };
-#include "graph.cpp"
-#endif // GRAPH_H_
+
+#endif
