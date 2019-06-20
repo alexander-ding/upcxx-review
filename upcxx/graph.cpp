@@ -82,7 +82,7 @@ int Graph::in_degree(const int n)  {
         int rank =  int(n / (num_nodes / rank_n()));
         auto offsets = in_offsets.fetch(rank).wait();
         auto edges = in_edges.fetch(rank).wait();
-        return _degree(offsets, n-int(n / rank_n() * rank_me()), edges.size());
+        return _degree(offsets, n-rank*int(num_nodes / rank_n()), edges.size());
     }
 }
 
@@ -93,7 +93,7 @@ int Graph::out_degree(const int n)  {
         int rank =  int(n / (num_nodes / rank_n()));
         auto offsets = out_offsets.fetch(rank).wait();
         auto edges = out_edges.fetch(rank).wait();
-        return _degree(offsets, n-int(n / rank_n() * rank_me()), edges.size());
+        return _degree(offsets, n-rank*int(num_nodes / rank_n()), edges.size());
     }
 }
 
@@ -112,7 +112,7 @@ vector<int> Graph::in_neighbors(const int n) {
         int rank =  int(n / (num_nodes / rank_n()));
         auto offsets = in_offsets.fetch(rank).wait();
         auto edges = in_edges.fetch(rank).wait();
-        return _neighbors(offsets, edges, n-int(n / rank_n() * rank_me()));
+        return _neighbors(offsets, edges, n-rank*int(num_nodes / rank_n()));
     }
 }
 
@@ -123,7 +123,7 @@ vector<int> Graph::out_neighbors(const int n) {
         int rank =  int(n / (num_nodes / rank_n()));
         auto offsets = out_offsets.fetch(rank).wait();
         auto edges = out_edges.fetch(rank).wait();
-        return _neighbors(offsets, edges, n-int(n / rank_n() * rank_me()));
+        return _neighbors(offsets, edges, n-rank*int(num_nodes / rank_n()));
     }
 }
 

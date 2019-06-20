@@ -1,5 +1,6 @@
 import sys
 import random
+from pathlib import Path
 
 class Node:
     def __init__(self, id, edges=[]):
@@ -11,7 +12,8 @@ def generate_tuple(n):
 
 def main():
     if len(sys.argv) != 4:
-        print("Usage: python generate_graph.py num_nodes num_edges outpath")
+        print("Usage: python generate_graph.py num_nodes num_edges outname")
+        exit(-1)
     n, m, p = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
     nodes = []
     for i in range(n):
@@ -21,7 +23,7 @@ def main():
         from_node, to_node = generate_tuple(n)
         nodes[from_node].edges.append(to_node)
 
-    with open(p, mode='w') as f:
+    with open(Path("graphs") / p, mode='w') as f:
         f.write('{}\n'.format(n))
         f.write('{}\n'.format(m))
         current_e = 0

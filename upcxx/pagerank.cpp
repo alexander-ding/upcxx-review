@@ -32,7 +32,6 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
         future<> fut_all = make_future();
         // compute local sections and add to rank 0
         for (int n = g.rank_start; n < g.rank_end; n++) {
-            g.out_degree(n);
             fut_all = when_all(fut_all, rput(scores_local[n] / g.out_degree(n), root_contrib+n));
         }
         fut_all.wait();
