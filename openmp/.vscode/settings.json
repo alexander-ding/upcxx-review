@@ -49,6 +49,16 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "vector": "cpp",
-        "climits": "cpp"
+        "climits": "cpp",
+        "__errc": "cpp",
+        "__split_buffer": "cpp",
+        "cmath": "cpp",
+        "deque": "cpp",
+        "fstream": "cpp",
+        "queue": "cpp",
+        "array": "cpp",
+        "unordered_map": "cpp",
+        "random": "cpp",
+        "*.tcc": "cpp"
     }
 }

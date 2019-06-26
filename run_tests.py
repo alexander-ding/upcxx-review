@@ -1,8 +1,10 @@
 import os
 import sys
 
-GRAPHS = [(10, 100), (100, 1000), (1000, 10000), (10000, 100000),
+GRAPHS_UNWEIGHTED = [(10, 100), (100, 1000), (1000, 10000), (10000, 100000),
           (100, 50), (100, 100), (100, 200), (100, 400)]
+
+GRAPHS_WEIGHTED = GRAPHS_UNWEIGHTED
 
 def run_mp(name):
     os.system("./openmp/{}".format(name))
@@ -31,34 +33,34 @@ def random_access_upcxx():
 def pagerank_mp():
     def graph(n, m):
         print("\nGraph: {} nodes; {} edges\n".format(n,m))
-        run_mp('pagerank graphs/{}_{}.txt'.format(n,m))
+        run_mp('pagerank graphs/unweighted/{}_{}.txt'.format(n,m))
 
-    for n, m in GRAPHS:
+    for n, m in GRAPHS_UNWEIGHTED:
         graph(n, m)
 
 
 def pagerank_upcxx():
     def graph(n, m):
         print("\nGraph: {} nodes; {} edges\n".format(n,m))
-        run_upcxx('pagerank graphs/{}_{}.txt'.format(n,m))
+        run_upcxx('pagerank graphs/unweighted/{}_{}.txt'.format(n,m))
 
-    for n, m in GRAPHS:
+    for n, m in GRAPHS_UNWEIGHTED:
         graph(n, m)
 
 def bfs_mp():
     def graph(n, m):
         print("\nGraph: {} nodes; {} edges\n".format(n,m))
-        run_mp("pagerank graphs/{}_{}.txt".format(n,m))
+        run_mp("pagerank graphs/unweighted/{}_{}.txt".format(n,m))
 
-    for n, m in GRAPHS:
-        graph(n, m)
+    for n, m in GRAPHS_UNWEIGHTED:
+        graph(n, m, False)
 
 def bfs_upcxx():
     def graph(n, m):
         print("\nGraph: {} nodes; {} edges\n".format(n,m))
-        run_upcxx("pagerank graphs/{}_{}.txt".format(n,m))
+        run_upcxx("pagerank graphs/unweighted/{}_{}.txt".format(n,m))
     
-    for n, m in GRAPHS:
+    for n, m in GRAPHS_UNWEIGHTED:
         graph(n, m)
 
 
