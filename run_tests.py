@@ -50,23 +50,47 @@ def pagerank_upcxx():
 def bfs_mp():
     def graph(n, m):
         print("\nGraph: {} nodes; {} edges\n".format(n,m))
-        run_mp("pagerank graphs/unweighted/{}_{}.txt".format(n,m))
+        run_mp("bfs graphs/unweighted/{}_{}.txt 0".format(n,m))
 
     for n, m in GRAPHS_UNWEIGHTED:
-        graph(n, m, False)
+        graph(n, m)
 
 def bfs_upcxx():
     def graph(n, m):
         print("\nGraph: {} nodes; {} edges\n".format(n,m))
-        run_upcxx("pagerank graphs/unweighted/{}_{}.txt".format(n,m))
+        run_upcxx("bfs graphs/unweighted/{}_{}.txt 0".format(n,m))
     
     for n, m in GRAPHS_UNWEIGHTED:
         graph(n, m)
 
+def bf_mp():
+    def graph(n, m):
+        if n > 100:
+            print("\nGraph: {} nodes; {} edges; all positive\n".format(n, m))
+            run_mp("bellman_ford graphs/weighted/{}_{}_pos.txt 0".format(n,m))
+        else:
+            print("\nGraph: {} nodes; {} edges\n".format(n,m))
+            run_mp("bellman_ford graphs/weighted/{}_{}.txt 0".format(n,m))
 
-names = ['hello', 'random_access', 'pagerank', 'bfs']
-mps = [hello_mp, random_access_mp, pagerank_mp, bfs_mp]
-upcxxs = [hello_upcxx, random_access_upcxx, pagerank_upcxx, bfs_upcxx]
+    for n, m in GRAPHS_WEIGHTED:
+        graph(n, m)
+
+def bf_upcxx():
+    def graph(n, m):
+        if n > 100:
+            print("\nGraph: {} nodes; {} edges; all positive\n".format(n,m))
+            run_upcxx("bellman_ford graphs/weighted/{}_{}_pos.txt 0".format(n,m))
+        else:
+            print("\nGraph: {} nodes; {} edges\n".format(n,m))
+            run_upcxx("bellman_ford graphs/weighted/{}_{}.txt 0".format(n,m))
+
+    for n, m in GRAPHS_WEIGHTED:
+        graph(n, m)
+    
+
+names = ['hello', 'random_access', 'pagerank', 'bfs', 'bf']
+mps = [hello_mp, random_access_mp, pagerank_mp, bfs_mp, bf_mp]
+upcxxs = [hello_upcxx, random_access_upcxx, pagerank_upcxx, bfs_upcxx, bf_upcxx]
 
 def run_task(name, mp, upcxx):
     print("-------------------")

@@ -5,24 +5,119 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "Build current file",
+            "label": "Build Bellman-Ford",
             "command": "upcxx",
             "args": [
                 "-O",
-                "${file}",
-                "graph.cpp",
+                "bellman_ford.cpp",
+                "graph_weighted.cpp",
                 "-o",
-                "${fileBasenameNoExtension}",
+                "bellman_ford",
             ],
             "group": "build"
         },
         {
             "type": "shell",
-            "label": "Run current file's compiled version",
+            "label": "Test Bellman_Ford",
             "command": "upcxx-run",
             "args": [
-                "-n", "2",
-                "./${fileBasenameNoExtension}",
+                "-n", "4",
+                "./bellman_ford",
+                "../graphs/weighted/1000_10000.txt",
+                "0",
+            ],
+            "group": "test"
+        },
+        {
+            "type": "shell",
+            "label": "Build BFS",
+            "command": "upcxx",
+            "args": [
+                "-O",
+                "bfs.cpp",
+                "graph.cpp",
+                "-o",
+                "bfs",
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test BFS",
+            "command": "upcxx-run",
+            "args": [
+                "-n", "4",
+                "./bfs", 
+                "../graphs/unweighted/test.txt",
+                "0",
+            ],
+            "group": "test"
+        },
+        {
+            "type": "shell",
+            "label": "Build PageRank",
+            "command": "upcxx",
+            "args": [
+                "-O",
+                "pagerank.cpp",
+                "graph.cpp",
+                "-o",
+                "pagerank",
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test PageRank",
+            "command": "upcxx-run",
+            "args": [
+                "-n", "4",
+                "./pagerank", 
+                "../graphs/unweighted/test.txt",
+            ],
+            "group": "test"
+        },
+        {
+            "type": "shell",
+            "label": "Build random access",
+            "command": "upcxx",
+            "args": [
+                "-O",
+                "random_access.cpp",
+                "-o",
+                "random_access",
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test random access",
+            "command": "upcxx-run",
+            "args": [
+                "-n", "4",
+                "./random_access", 
+            ],
+            "group": "test"
+        },
+        {
+            "type": "shell",
+            "label": "Build Hello World",
+            "command": "upcxx",
+            "args": [
+                "-O",
+                "hello.cpp",
+                "-o",
+                "hello",
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test Hello World",
+            "command": "upcxx-run",
+            "args": [
+                "-n", "4",
+                "./hello",
             ],
             "group": "test"
         },

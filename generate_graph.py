@@ -21,14 +21,14 @@ def generate_weight(min=0, max=500, neg_rate=0.01):
 
 def main(args):
     n, m, p = args.n_nodes, args.n_edges, args.output
-    
+    neg_rate = args.negative
     nodes = []
     for i in range(n):
         nodes.append(Node(i))
     if args.weighted:
         for _ in range(m):
             from_node, to_node = generate_tuple(n)
-            weight = generate_weight()
+            weight = generate_weight(neg_rate=neg_rate)
             nodes[from_node].edges.append((to_node, weight))
     else:
         for _ in range(m):
@@ -60,5 +60,7 @@ if __name__ == "__main__":
                     help="whether the graph is weighted")
     parser.add_argument("-O", "--output", type=str, required=True,
                     help="where the output graph is stored")
+    parser.add_argument("--negative", type=float, default=0.01,
+                    help="The rate of negative values")
     args = parser.parse_args()
     main(args)

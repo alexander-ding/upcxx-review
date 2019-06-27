@@ -117,7 +117,6 @@ int main(int argc, char *argv[]) {
     std::chrono::duration<double> delta_time = time_after - time_before;
     if (rank_me() == 0) {
         std::cout << "Time: " << delta_time.count() << "s" << std::endl;
-        print_vector(dist);
         /* if (!verify(g, root, dist)) {
             std::cerr << "Verification not correct" << endl;
         } */

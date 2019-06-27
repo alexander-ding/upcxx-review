@@ -9,12 +9,6 @@
 
 using namespace std;
 
-template<typename T>
-vector<T> _split(const string& line) {
-    istringstream is(line);
-    return vector<T>(istream_iterator<T>(is), istream_iterator<T>());
-}
-
 Graph::Graph(char* path) {
     ifstream fin(path);
     int n, m;
