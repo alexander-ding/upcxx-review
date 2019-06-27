@@ -59,6 +59,8 @@
         "array": "cpp",
         "unordered_map": "cpp",
         "random": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "numeric": "cpp",
+        "sstream": "cpp"
     }
 }

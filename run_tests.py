@@ -87,10 +87,27 @@ def bf_upcxx():
     for n, m in GRAPHS_WEIGHTED:
         graph(n, m)
     
+def cc_mp():
+    def graph(n, m):
+        print("\nGraph: {} nodes; {} edges\n".format(n,m))
+        run_mp("connected_components graphs/unweighted/{}_{}.txt".format(n,m))
 
-names = ['hello', 'random_access', 'pagerank', 'bfs', 'bf']
-mps = [hello_mp, random_access_mp, pagerank_mp, bfs_mp, bf_mp]
-upcxxs = [hello_upcxx, random_access_upcxx, pagerank_upcxx, bfs_upcxx, bf_upcxx]
+    for n, m in GRAPHS_UNWEIGHTED:
+        graph(n, m)
+
+    
+def cc_upcxx():
+    def graph(n, m):
+        print("\nGraph: {} nodes; {} edges\n".format(n,m))
+        run_upcxx("connected_components graphs/unweighted/{}_{}.txt".format(n,m))
+
+    for n, m in GRAPHS_UNWEIGHTED:
+        graph(n, m)
+
+
+names = ['hello', 'random_access', 'pagerank', 'bfs', 'bf', "cc"]
+mps = [hello_mp, random_access_mp, pagerank_mp, bfs_mp, bf_mp, cc_mp]
+upcxxs = [hello_upcxx, random_access_upcxx, pagerank_upcxx, bfs_upcxx, bf_upcxx, cc_upcxx]
 
 def run_task(name, mp, upcxx):
     print("-------------------")
@@ -118,6 +135,8 @@ def main():
         run_task(test, pagerank_mp, pagerank_upcxx)
     elif test == "bfs":
         run_task(test, bfs_mp, bfs_upcxx)
+    elif test == "cc":
+        run_task(test, cc_mp, cc_upcxx)
 
 if __name__ == "__main__":
     main()

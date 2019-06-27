@@ -18,62 +18,31 @@
         },
         {
             "type": "shell",
-            "label": "Build current file with OpenMP",
-            "command": "g++-8",
-            "args": [
-                "-fopenmp",
-                "-std=c++11",
-                "${file}",
-                "graph.cpp",
-                "-o",
-                "${fileBasenameNoExtension}"
-            ],
-            "group": "build"
-        },
-        {
-            "type": "shell",
-            "label": "Build current file without OpenMP",
-            "command": "g++-8",
-            "args": [
-                "-std=c++11",
-                "${file}",
-                "graph.cpp",
-                "-o",
-                "${fileBasenameNoExtension}_no_mp"
-            ],
-            "group": "build"
-        },
-        {
-            "type": "shell",
             "label": "Test bellman-ford",
             "command": "./bellman_ford ../graphs/weighted/test.txt 0",
             "group": "test"
         },
         {
             "type": "shell",
-            "label": "Run current file's compiled version with OpenMP",
-            "command": "./${fileBasenameNoExtension}",
-            "group": "test"
-        },
-        {
-            "type": "shell",
-            "label": "Run current file's compiled version without OpenMP",
-            "command": "./${fileBasenameNoExtension}_no_mp",
-            "group": "test"
-        },
-        {
-            "type": "shell",
-            "label": "g++-8 build active file",
-            "command": "/usr/local/bin/g++-8",
+            "label": "Build connected componenets",
+            "command": "g++-8",
             "args": [
-                "-g",
-                "${file}",
+                "-fopenmp",
+                "-std=c++11",
+                "connected_components.cpp",
+                "graph.cpp",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
+                "connected_components",
+                "-g"
             ],
-            "options": {
-                "cwd": "/usr/local/bin"
-            }
-        }
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test connected components",
+            "command": "./connected_components ../graphs/unweighted/test.txt",
+            "group": "test"
+        },
+        
     ]
 }

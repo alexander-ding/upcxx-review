@@ -5,6 +5,30 @@
     "tasks": [
         {
             "type": "shell",
+            "label": "Build connected components",
+            "command": "upcxx",
+            "args": [
+                "-O",
+                "connected_components.cpp",
+                "graph.cpp",
+                "-o",
+                "connected_components",
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test connected components",
+            "command": "upcxx-run",
+            "args": [
+                "-n", "4",
+                "./connected_components",
+                "../graphs/unweighted/1000_10000.txt",
+            ],
+            "group": "test"
+        },
+        {
+            "type": "shell",
             "label": "Build Bellman-Ford",
             "command": "upcxx",
             "args": [
@@ -18,12 +42,12 @@
         },
         {
             "type": "shell",
-            "label": "Test Bellman_Ford",
+            "label": "Test Bellman-Ford",
             "command": "upcxx-run",
             "args": [
                 "-n", "4",
                 "./bellman_ford",
-                "../graphs/weighted/1000_10000.txt",
+                "../graphs/weighted/test.txt",
                 "0",
             ],
             "group": "test"

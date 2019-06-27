@@ -60,7 +60,7 @@ vector<int> bellman_ford(Graph& g, int root) {
         round += 1;
     }
 
-    if (round == (g.num_edges())) {
+    if (round == (g.num_nodes())) {
         cout << "There exists a negative-weight cycle" << endl;
     }
 
