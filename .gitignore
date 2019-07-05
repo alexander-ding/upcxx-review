@@ -6,3 +6,5 @@
 .DS_Store
 ipch
 *.dSYM
+
+__pycache__
