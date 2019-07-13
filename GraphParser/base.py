@@ -1,12 +1,14 @@
 from pathlib import Path
 import requests
 import os
+from .utils import mkdir_if_necessary
 
 class BaseParser:
     def __init__(self, config, name, download_url, weighted=None):
         self.nodes = []
         self.work_path = Path(config.get("DEFAULT", "WorkPath"))
-        self.graph_path = Path(config.get("DEFAULT", "GraphPath"))
+        graph_path = Path(config.get("DEFAULT", "RealGraphPath"))
+        self.graph_path = graph_path / "weighted" if weighted else graph_path / "unweighted"
         self.name = name
         self.download_url = download_url
         self.weighted = False # to be set
@@ -25,7 +27,7 @@ class BaseParser:
         download_path = self.work_path / Path(self.download_url).parts[-1]
         extracted_path = self.work_path / Path(self.download_url).stem
         if extracted_path.exists():
-            return extracted_path
+            return extracted_path 
         print("Preexisting file {} not found. Downloading...".format(extracted_path))
         r = requests.get(self.download_url)
         
@@ -57,6 +59,7 @@ class BaseParser:
         """
         outpath = self.graph_path / self.name
         print("Writing the parsed graph {}...".format(outpath))
+        mkdir_if_necessary(outpath)
         with open(outpath, "w") as f:
             n = len(self.nodes)
             m = sum([len(node) for node in self.nodes])

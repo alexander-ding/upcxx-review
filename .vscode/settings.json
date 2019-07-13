@@ -35,5 +35,5 @@
         "tuple": "cpp",
         "typeinfo": "cpp"
     },
-    "python.pythonPath": "C:\\Users\\alexd\\AppData\\Local\\Continuum\\anaconda3\\python.exe"
+    "python.pythonPath": "/anaconda3/bin/python"
 }
