@@ -74,7 +74,7 @@ def run_mp(name, num_nodes):
 
 def run_upcxx(name, num_nodes):
     upcxx_path = (CODE_PATH / "upcxx" / name).absolute()
-    command = "upcxx-run -n {} {}".format(num_nodes, upcxx_path)
+    command = "{}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
     if name == "hello":
         os.system(command)
         return
