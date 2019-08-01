@@ -1,0 +1,107 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Build bellman-ford",
+            "command": "g++-8",
+            "args": [
+                "-fopenmp",
+                "-std=c++11",
+                "bellman_ford.cpp",
+                "graph_weighted.cpp",
+                "-o",
+                "bellman_ford",
+                "-g"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Build bfs",
+            "command": "g++-8",
+            "args": [
+                "-fopenmp",
+                "-std=c++11",
+                "bfs.cpp",
+                "graph.cpp",
+                "-o",
+                "bfs",
+                "-g"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Build hello",
+            "command": "g++-8",
+            "args": [
+                "-fopenmp",
+                "-std=c++11",
+                "hello.cpp",
+                "-o",
+                "hello",
+                "-g"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Build pagerank",
+            "command": "g++-8",
+            "args": [
+                "-fopenmp",
+                "-std=c++11",
+                "pagerank.cpp",
+                "graph.cpp",
+                "-o",
+                "pagerank",
+                "-g"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Build random access",
+            "command": "g++-8",
+            "args": [
+                "-fopenmp",
+                "-std=c++11",
+                "random_access.cpp",
+                "-o",
+                "random_access",
+                "-g"
+            ],
+            "group": "build"
+        },
+        
+        {
+            "type": "shell",
+            "label": "Test bellman-ford",
+            "command": "./bellman_ford ../graphs/weighted/test.txt 0",
+            "group": "test"
+        },
+        {
+            "type": "shell",
+            "label": "Build connected componenets",
+            "command": "g++-8",
+            "args": [
+                "-fopenmp",
+                "-std=c++11",
+                "connected_components.cpp",
+                "graph.cpp",
+                "-o",
+                "connected_components",
+                "-g"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Test connected components",
+            "command": "./connected_components ../graphs/unweighted/test.txt",
+            "group": "test"
+        },
+        
+    ]
+}

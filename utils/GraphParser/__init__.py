@@ -4,6 +4,7 @@ from .currency import *
 from .utils import mkdir_if_necessary
 
 def get_all_graphs(config):
+    from pathlib import Path
     parsers = [FacebookCircleParser(config), 
                TwitterCircleParser(config),
                GoogleCircleParser(config), 
@@ -13,7 +14,7 @@ def get_all_graphs(config):
                BitcoinAlphaParser(config)]
 
     mkdir_if_necessary(config.get("DEFAULT", "WorkPath"))
-    mkdir_if_necessary(config.get("DEFAULT", "GraphPath"))
+    mkdir_if_necessary(config.get("DEFAULT", "RealGraphPath"))
     for parser in parsers:
         parser.get()
-        # parser.cleanup()
+        #parser.cleanup()

@@ -1,5 +1,6 @@
 import sys
 import random
+import os
 from pathlib import Path
 from configparser import ConfigParser
 from GraphParser import mkdir_if_necessary
@@ -49,15 +50,20 @@ def generate_graph(p, n, m, weighted, neg_rate=0.01):
                 else:
                     f.write('{}\n'.format(edge))
 
-def main():
-    node_sizes = [10, 100, 1000, 10000, 100000]
-    edge_proportions = [1, 5, 10]
-    neg_rates = [0.0, 0.01, 0.1]
-    copies = 10
+def parse_list(s, t=int):
+    return [t(v) for v in s.split(" ")]
 
+def main():
     config = ConfigParser()
     config.read("config.ini")
+    
     base_p = Path(config.get("DEFAULT", "RandomGraphPath"))
+    node_sizes = parse_list(config.get("DEFAULT", "NodeSizes"))
+    edge_proportions = parse_list(config.get("DEFAULT", "EdgeProportions"))
+    neg_rates = parse_list(config.get("DEFAULT", "NegRates"), float)
+    copies = int(config.get("DEFAULT", "Copies"))
+
+    mkdir_if_necessary(base_p.parent)
     mkdir_if_necessary(base_p)
     
     # unweighted
@@ -86,4 +92,9 @@ def main():
                     generate_graph(p, node_size, node_size * edge_proportion, True, neg_rate)
 
 if __name__ == "__main__":
+    cws = os.getcwd()
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    if os.path.join(cws, "utils") != dir_path:
+        raise Exception("generate_graph.py must be run from the top-level directory of the repository")
+        
     main()

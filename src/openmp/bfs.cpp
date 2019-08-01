@@ -107,9 +107,9 @@ int main(int argc, char *argv[]) {
 
     auto time_after = chrono::system_clock::now();
     chrono::duration<double> delta_time = time_after - time_before;
-    cout << "Time: " << delta_time.count() << "s" << endl;
+    cout << delta_time.count() << endl;
 
-    if (!verify(g, root, scores)) {
+    /* if (!verify(g, root, scores)) {
         cerr << "BFS result is not correct" << endl;
-    }
+    } */
 }

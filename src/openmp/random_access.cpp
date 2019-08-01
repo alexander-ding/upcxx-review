@@ -5,7 +5,11 @@
 #include <ctime> 
 
 int main(int argc, char *argv[]) {
-    int N_array = 100000;
+    if (argc != 2) {
+        std::cout << "Usage: ./random_access <array_size>" << std::endl;
+        return -1;
+    }
+    int N_array = atoi(argv[1]);
     int N_test = 1000000;
     int* A = new int[N_array];
     int* B = new int[N_array];
@@ -16,8 +20,6 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < N_test; i++) {
         R[i] = rand() % N_array; // fill in some arbitrary values
     }
-
-    std::cout << N_test << " tests with arrays of size " << N_array << std::endl;
 
     auto time_before = std::chrono::system_clock::now();
 
@@ -43,7 +45,7 @@ int main(int argc, char *argv[]) {
     auto time_after_write = std::chrono::system_clock::now();
     std::chrono::duration<double> write_time = time_after_write - time_after_read;
 
-    std::cout << "Read time: " << read_time.count() << "s" << std::endl;
-    std::cout << "Write time: " << write_time.count() << "s" << std::endl;
+    std::cout << read_time.count() << std::endl;
+    std::cout << write_time.count() << std::endl;
 
 }

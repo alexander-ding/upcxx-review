@@ -77,5 +77,5 @@ int main(int argc, char *argv[]) {
     vector<int> labels = connected_components(g);
     auto time_after = chrono::system_clock::now();
     chrono::duration<double> delta_time = time_after - time_before;
-    cout << "Time: " << delta_time.count() << "s" << endl;
+    cout << delta_time.count() << endl;
 }

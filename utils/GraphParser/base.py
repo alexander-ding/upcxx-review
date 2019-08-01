@@ -59,7 +59,7 @@ class BaseParser:
         """
         outpath = self.graph_path / self.name
         print("Writing the parsed graph {}...".format(outpath))
-        mkdir_if_necessary(outpath)
+        mkdir_if_necessary(self.graph_path)
         with open(outpath, "w") as f:
             n = len(self.nodes)
             m = sum([len(node) for node in self.nodes])

@@ -1,4 +1,4 @@
-#include "graph.hpp"
+#include "graph_weighted.hpp"
 #include "upcxx/upcxx.hpp"
 #include <chrono>
 #include <ctime> 
@@ -14,33 +14,43 @@ void print_vector(const vector<T> & v) {
     cout << endl;
 }
 
+bool compare(int v1, int w, int v2) {
+    // checks if v1 + w < v2
+    if (v1 == INT_MAX) return false;
+    if (v2 == INT_MAX) return true;
+    return ((v1+w) < v2);
+}
 
-vector<int> connected_components(Graph &g) {
+vector<int> bellman_ford(Graph &g, int root) {
     // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
 
-    dist_object<global_ptr<int>> labels(new_array<int>(g.num_nodes));
+    dist_object<global_ptr<int>> dist(new_array<int>(g.num_nodes));
     dist_object<global_ptr<bool>> changed_last_round(new_array<bool>(g.num_nodes));
-    auto labels_local = labels->local();
+    auto dist_local = dist->local();
     auto changed_last_round_local = changed_last_round->local();
     for (int i = 0; i < g.num_nodes; i++) {
-        labels_local[i] = i;
-        changed_last_round_local[i] = true;
+        dist_local[i] = INT_MAX;
+        changed_last_round_local[i] = false;
     }
-
+    dist_local[root] = 0; // initialize everyone to INF except root
+    changed_last_round_local[root] = true;
     barrier();
 
     bool is_new_added = true; // is there new node edited
-
-    while (is_new_added) {
+    int round = 0;
+    
+    while (is_new_added && round < g.num_nodes) {
         bool new_added = false;
         for (int u = g.rank_start; u < g.rank_end; u++) {
             vector<int> neighbors = g.in_neighbors(u);
+            vector<int> weights = g.in_weights_neighbors(u);
             for (int j = 0; j < g.in_degree(u); j++) {
                 int v = neighbors[j];
                 // don't care about it if v hasn't been updated last round
                 if (!changed_last_round_local[v]) continue; 
-                if (labels_local[v] < labels_local[u]) {
-                    labels_local[u] = labels_local[v];
+                int weight = weights[j];
+                if (compare(dist_local[v], weight, dist_local[u])) {
+                    dist_local[u] = dist_local[v] + weight;
                     changed_last_round_local[u] = true;
                     new_added = true;
                 }
@@ -50,10 +60,10 @@ vector<int> connected_components(Graph &g) {
         barrier();
 
         // synchronize all
-        global_ptr<int> root_labels = labels.fetch(0).wait();
-        future<> fut_all_labels = make_future();
+        global_ptr<int> root_dist = dist.fetch(0).wait();
+        future<> fut_all_dist = make_future();
         for (int n = g.rank_start; n < g.rank_end; n++) {
-            fut_all_labels = when_all(fut_all_labels, rput(labels_local[n], root_labels+n));
+            fut_all_dist = when_all(fut_all_dist, rput(dist_local[n], root_dist+n));
         }
         global_ptr<bool> root_changed_last = changed_last_round.fetch(0).wait();
         future<> fut_all_changed = make_future();
@@ -61,40 +71,45 @@ vector<int> connected_components(Graph &g) {
             fut_all_changed = when_all(fut_all_changed, rput(changed_last_round_local[n], root_changed_last+n));
         }
 
-        fut_all_labels.wait();
+        fut_all_dist.wait();
         fut_all_changed.wait();
 
         barrier();
-        auto f_broadcast = upcxx::broadcast(labels_local, g.num_nodes, 0);
+        auto f_broadcast = upcxx::broadcast(dist_local, g.num_nodes, 0);
         f_broadcast = when_all(f_broadcast, upcxx::broadcast(changed_last_round_local, g.num_nodes, 0));
         f_broadcast.wait();
 
         is_new_added = reduce_all(new_added, op_bit_or).wait();
+        round += 1;
     };
 
     // ready the return
-    vector<int> labels_return;
-    labels_return.assign(labels_local, labels_local+g.num_nodes);
-    return labels_return;
+    vector<int> dist_return;
+    dist_return.assign(dist_local, dist_local+g.num_nodes);
+    if (round == g.num_nodes) {
+        //cout << "There exists a negative-weight cycle" << endl;
+    }
+    return dist_return;
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        cout << "Usage: ./connected_components <path_to_graph>" << endl;
+    if (argc != 3) {
+        cout << "Usage: ./bellman_ford <path_to_graph> <root>" << endl;
         exit(-1);
     }
 
     init();
 
     Graph g(argv[1]);
+    int root = atoi(argv[2]);
     barrier(); 
 
     auto time_before = std::chrono::system_clock::now();
-    vector<int> labels = connected_components(g);
+    vector<int> dist = bellman_ford(g, root);
     auto time_after = std::chrono::system_clock::now();
     std::chrono::duration<double> delta_time = time_after - time_before;
     if (rank_me() == 0) {
-        std::cout << "Time: " << delta_time.count() << "s" << std::endl;
+        std::cout << delta_time.count() << std::endl;
         /* if (!verify(g, root, dist)) {
             std::cerr << "Verification not correct" << endl;
         } */

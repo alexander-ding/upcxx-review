@@ -61,7 +61,7 @@ vector<int> bellman_ford(Graph& g, int root) {
     }
 
     if (round == (g.num_nodes())) {
-        cout << "There exists a negative-weight cycle" << endl;
+        // cout << "There exists a negative-weight cycle" << endl;
     }
 
     return dist;
@@ -82,5 +82,5 @@ int main(int argc, char *argv[]) {
 
     auto time_after = chrono::system_clock::now();
     chrono::duration<double> delta_time = time_after - time_before;
-    cout << "Time: " << delta_time.count() << "s" << endl;
+    cout << delta_time.count() << endl;
 }

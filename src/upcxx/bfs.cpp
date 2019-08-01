@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     auto time_after = std::chrono::system_clock::now();
     std::chrono::duration<double> delta_time = time_after - time_before;
     if (rank_me() == 0) {
-        std::cout << "Time: " << delta_time.count() << "s" << std::endl;
+        std::cout << delta_time.count() << std::endl;
         /* if (!verify(g, root, dist)) {
             std::cerr << "Verification not correct" << endl;
         } */

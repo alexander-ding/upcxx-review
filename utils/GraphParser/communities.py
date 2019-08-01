@@ -50,7 +50,7 @@ class OrkutParser(BaseParser):
 
         print("Offsets done. Outputting edges now")
 
-        offset = 400000 # process that many each time
+        offset = 500000 # process that many each time
         for i in range(n_nodes // offset + 1):
             min_id = i * offset
             max_id = min((i+1) * offset, n_nodes) # exclusive
@@ -128,7 +128,7 @@ class YoutubeParser(BaseParser):
 
         print("Offsets done. Outputting edges now")
 
-        offset = 400000 # process that many each time
+        offset = 100000 # process that many each time
         for i in range(n_nodes // offset + 1):
             min_id = i * offset
             max_id = min((i+1) * offset, n_nodes) # exclusive

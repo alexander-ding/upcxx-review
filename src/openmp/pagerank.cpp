@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
 
     auto time_after = std::chrono::system_clock::now();
     std::chrono::duration<double> delta_time = time_after - time_before;
-    std::cout << "Time: " << delta_time.count() << "s" << std::endl;
+    std::cout << delta_time.count() << std::endl;
     
     /*if (verify(scores, g, max_iters, tolerance)) {
         cout << "Succeeds" << endl;
