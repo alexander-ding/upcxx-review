@@ -17,4 +17,4 @@ def get_all_graphs(config):
     mkdir_if_necessary(config.get("DEFAULT", "RealGraphPath"))
     for parser in parsers:
         parser.get()
-        #parser.cleanup()
+        parser.cleanup()

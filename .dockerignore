@@ -4,4 +4,4 @@
 
 *.json
 .vscode
-graphs/intermediate
+graphs
