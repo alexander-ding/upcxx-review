@@ -1,6 +1,7 @@
 # For binary
 * 
 !*.*
+!makefile
 !*/
 
 .DS_Store
