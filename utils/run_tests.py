@@ -7,11 +7,18 @@ import argparse
 from configparser import ConfigParser
 from pathlib import Path
 
+
+def parse_list(s, t=int):
+    return [t(v) for v in s.split(" ")]
+
 def get_random_graphs(base_p):
-    node_sizes = [1000, 10000, 100000]
-    edge_proportions = [1, 5, 10]
-    neg_rates = [0.0, 0.01]
-    copies = 10
+    config = ConfigParser()
+    config.read("config.ini")
+    
+    node_sizes = parse_list(config.get("DEFAULT", "NodeSizes"))
+    edge_proportions = parse_list(config.get("DEFAULT", "EdgeProportions"))
+    neg_rates = parse_list(config.get("DEFAULT", "NegRates"), float)
+    copies = int(config.get("DEFAULT", "Copies"))
 
     unweighted = []
     weighted = []
