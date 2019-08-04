@@ -9,3 +9,4 @@ ipch
 *.dSYM
 
 __pycache__
+*.json
