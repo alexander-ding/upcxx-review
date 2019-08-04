@@ -76,7 +76,6 @@ def run_mp(name, num_nodes):
         return
     output = subprocess.check_output(command, shell=True)
     result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
-    print(result)
     return result
 
 def run_upcxx(name, num_nodes):
@@ -87,7 +86,7 @@ def run_upcxx(name, num_nodes):
         return
     output = subprocess.check_output(command, shell=True)
     result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
-    print(result)
+        
     return result
 
 def hello_mp(num_nodes):
@@ -100,48 +99,78 @@ def random_access_mp(num_nodes):
     result = []
     for array_size in ARRAY_SIZES:
         print("Array size:", array_size)
-        read_time, write_time = run_mp('random_access {}'.format(array_size), num_nodes)
-        result.append({'read':read_time, 'write':write_time, 'array_size': array_size})
+        name = 'random_access {}'.format(array_size)
+        try:
+            read_time, write_time = run_mp(name, num_nodes)
+            result.append({'error':False,'read':read_time, 'write':write_time, 'array_size': array_size})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def random_access_upcxx(num_nodes):
     result = []
     for array_size in ARRAY_SIZES:
         print("Array size:", array_size)
-        read_time, write_time = run_upcxx('random_access_future {}'.format(array_size), num_nodes)
-        result.append({'read':read_time, 'write':write_time, 'array_size': array_size})
+        name = 'random_access_future {}'.format(array_size)
+        try:
+            read_time, write_time = run_upcxx(name, num_nodes)
+            result.append({'error':False, 'read':read_time, 'write':write_time, 'array_size': array_size})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def pagerank_mp(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_mp('pagerank {}'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'pagerank {}'.format(p)
+        try:
+            time = run_mp(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def pagerank_upcxx(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_mp('pagerank {}'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'pagerank {}'.format(p)
+        try:
+            time = run_mp(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def bfs_mp(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_mp('bfs {} 0'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'bfs {} 0'.format(p)
+        try:
+            time = run_mp(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def bfs_upcxx(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_upcxx('bfs {} 0'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'bfs {} 0'.format(p)
+        try:
+            time = run_upcxx(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def bf_mp(num_nodes):
@@ -150,8 +179,13 @@ def bf_mp(num_nodes):
         if 'name' not in info and info['node_size'] > 1000 and info['neg_rate'] > 0:
             continue
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_mp('bellman_ford {} 0'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'bellman_ford {} 0'.format(p)
+        try:
+            time = run_upcxx(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 def bf_upcxx(num_nodes):
@@ -160,16 +194,26 @@ def bf_upcxx(num_nodes):
         if 'name' not in info and info['node_size'] > 1000 and info['neg_rate'] > 0:
             continue
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_upcxx('bellman_ford {} 0'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'bellman_ford {} 0'.format(p)
+        try:
+            time = run_upcxx(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
     
 def cc_mp(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_mp('connected_components {}'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'connected_components {}'.format(p)
+        try:
+            time = run_upcxx(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
     
@@ -177,8 +221,13 @@ def cc_upcxx(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        time = run_upcxx('connected_components {}'.format(p), num_nodes)
-        result.append({'time':time[0], **info})
+        name = 'connected_components {}'
+        try:
+            time = run_upcxx(name, num_nodes)
+            result.append({'error':False, 'time':time[0], **info})
+        except:
+            print("Error when running {} with {} cores".format(name, num_nodes))
+            result.append({'error':True})
     return result
 
 from collections import defaultdict
@@ -209,22 +258,27 @@ ALL_TESTS = {
 
 def main(args):
     test = args.test
-    num_nodes = args.num_nodes
-    if num_nodes < 2:
-        raise Exception("num_nodes must be at least 2")
+    num_nodes_min = args.num_nodes_min
+    num_nodes_max = args.num_nodes_max
+    if num_nodes_min < 2:
+        raise Exception("num_nodes_min must be at least 2")
 
     init(args) # read graphs
 
     if test == "all":
-        for num_node in range(2, num_nodes+1, 4):
-            for name in ALL_TESTS.keys():
-                run_task(name, ALL_TESTS[name]['mp'], ALL_TESTS[name]['upcxx'], num_node)
-
-        print(all_results)
-        with open("test_result.json", "w") as f:
-            json.dump(all_results, f)
+        tests = ALL_TESTS.keys()
     else:
-        run_task(test, ALL_TESTS[test]['mp'], ALL_TESTS[test]['upcxx'], num_nodes)
+        tests = [test]
+
+    for num_node in range(num_nodes_min, num_nodes_max+1, 4):
+        for name in tests:
+            run_task(name, ALL_TESTS[name]['mp'], ALL_TESTS[name]['upcxx'], num_node)
+
+    # print(all_results)
+        
+    if test == "all":
+        with open(args.output, "w") as f:
+            json.dump(all_results, f)
 
 GRAPHS_UNWEIGHTED = []
 GRAPHS_WEIGHTED = []
@@ -258,7 +312,8 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Run tests on OpenMP and UPC++")
     parser.add_argument('test', type=str, help="The name of the test to be run. Input all for a proper test run")
-    parser.add_argument('--num_nodes', type=int, default=4, help="The number of nodes on which to run tests. Running all tests would try node counts of [2, num_nodes]")
+    parser.add_argument('--num_nodes_min', type=int, default=2, help="The minimum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
+    parser.add_argument('--num_nodes_max', type=int, default=2, help="The maximum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--output', type=str, default="test_results.json", help="The output file generated when the test is completed")
     parser.add_argument('--dataset', type=str, default="random", choices=['random', 'real', 'all'], help="The graphs to use for testing")
 
