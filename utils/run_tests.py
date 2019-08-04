@@ -221,7 +221,7 @@ def cc_upcxx(num_nodes):
     result = []
     for p, info in GRAPHS_UNWEIGHTED:
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
-        name = 'connected_components {}'
+        name = 'connected_components {}'.format(p)
         try:
             time = run_upcxx(name, num_nodes)
             result.append({'error':False, 'time':time[0], **info})
