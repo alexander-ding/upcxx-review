@@ -14,7 +14,7 @@ GRAPHS_WEIGHTED = []
 CODE_PATH = None
 
 def pagerank(p, num_nodes, kind):
-    num_iters = 32
+    num_iters = 16
     print("\nGraph: {}".format(p))
     name = 'pagerank {}'.format(p)
     total_time = 0.0
@@ -31,7 +31,7 @@ def bfs(p, num_nodes, kind):
     with open(p) as f:
         n = int(f.readline()[:-1])
     
-    num_iters = 32
+    num_iters = 16
     xs = np.random.choice(n, num_iters, replace=False)
     
     total_time = 0.0
@@ -50,7 +50,7 @@ def bf(p, num_nodes, kind):
     with open(p) as f:
         n = int(f.readline()[:-1])
     
-    num_iters = 32
+    num_iters = 16
     xs = np.random.choice(n, num_iters, replace=False)
     
     total_time = 0.0
@@ -65,7 +65,7 @@ def bf(p, num_nodes, kind):
 
 def cc(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
-    num_iters = 32
+    num_iters = 16
     name = 'connected_components {}'.format(p)
     
     total_time = 0.0
@@ -94,7 +94,6 @@ def run_mp(name, num_nodes):
 def run_upcxx(name, num_nodes):
     upcxx_path = (CODE_PATH / "upcxx" / name).absolute()
     command = "{}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
-    print(command)
     output = subprocess.check_output(command, shell=True)
     result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
         
@@ -155,7 +154,7 @@ def main(args):
                 while num_nodes <= num_nodes_max:
                     try:
                         time = ALL_TESTS[test](p, num_nodes, kind)
-                        results[test][graph]['data'].append((num_nodes, time))
+                        results[test][info['name']]['data'].append((num_nodes, time))
                     except Exception as e:
                         print(e)
                         print("Error running {} {} {}".format(test, graph, kind))
