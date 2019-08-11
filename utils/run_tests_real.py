@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import subprocess
+import json
 
 from GraphParser import mkdir_if_necessary
 from configparser import ConfigParser
@@ -159,7 +160,9 @@ def main(args):
                         print(e)
                         print("Error running {} {} {}".format(test, graph, kind))
                     num_nodes *= 2
-
+    
+    with open(args.output, "w") as f:
+        json.dump(results, f)
             
 
 if __name__ == "__main__":
@@ -172,7 +175,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tests on OpenMP and UPC++")
     parser.add_argument('--num_nodes_min', type=int, default=1, help="The minimum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--num_nodes_max', type=int, default=32, help="The maximum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
-    parser.add_argument('--output', type=str, default="test_results.json", help="The output file generated when the test is completed")
+    parser.add_argument('--output', type=str, default="test_results_real.json", help="The output file generated when the test is completed")
 
     args = parser.parse_args()
     main(args)
