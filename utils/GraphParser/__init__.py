@@ -17,7 +17,7 @@ def convert_to_weighted(in_p, out_p):
             for _ in range(m):
                 to_index = int(fin.readline()[:-1])
                 weight = random.randint(0, 10)
-                fout.write("{} {}".format(to_index, weight))
+                fout.write("{} {}\n".format(to_index, weight))
 
 def get_all_graphs(config):
     from pathlib import Path
