@@ -87,6 +87,7 @@ ALL_TESTS = {
 def run_mp(name, num_nodes):
     mp_path = (CODE_PATH / "openmp" / name).absolute()
     command = "OMP_NUM_THREADS={} bash -c '{}'".format(num_nodes, mp_path)
+    print(command)
     output = subprocess.check_output(command, shell=True)
     result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
     return result
@@ -94,6 +95,7 @@ def run_mp(name, num_nodes):
 def run_upcxx(name, num_nodes):
     upcxx_path = (CODE_PATH / "upcxx" / name).absolute()
     command = "{}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
+    print(commnad)
     output = subprocess.check_output(command, shell=True)
     result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
         
