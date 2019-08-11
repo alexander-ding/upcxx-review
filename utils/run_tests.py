@@ -140,7 +140,7 @@ def pagerank_upcxx(num_nodes):
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
         name = 'pagerank {}'.format(p)
         try:
-            time = run_mp(name, num_nodes)
+            time = run_upcxx(name, num_nodes)
             result.append({'error':False, 'time':time[0], **info})
         except:
             print("Error when running {} with {} cores".format(name, num_nodes))
@@ -181,7 +181,7 @@ def bf_mp(num_nodes):
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
         name = 'bellman_ford {} 0'.format(p)
         try:
-            time = run_upcxx(name, num_nodes)
+            time = run_mp(name, num_nodes)
             result.append({'error':False, 'time':time[0], **info})
         except:
             print("Error when running {} with {} cores".format(name, num_nodes))
@@ -209,7 +209,7 @@ def cc_mp(num_nodes):
         print("\nGraph: {} nodes; {} edges\n".format(info['node_size'],info['edge_size']))
         name = 'connected_components {}'.format(p)
         try:
-            time = run_upcxx(name, num_nodes)
+            time = run_mp(name, num_nodes)
             result.append({'error':False, 'time':time[0], **info})
         except:
             print("Error when running {} with {} cores".format(name, num_nodes))

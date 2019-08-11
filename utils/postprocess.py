@@ -20,6 +20,10 @@ TESTS_UNWEIGHTED = ['pagerank' ,'bfs', 'cc']
 TESTS_WEIGHTED = ['bf']
 TESTS_ARRAY = ['random_access']
 
+TEST_GRAPHS_UNWEIGHTED = ['com-orkut.ungraph.txt', 'com-youtube.ungraph.txt', 'facebook_combined.txt', 'gplus_combined.txt', 'twitter_combined.txt']
+
+TEST_GRAPHS_WEIGHTED = ['soc-sign-bitcoinalpha.txt', 'soc-sign-bitcoinotc.txt']
+
 KIND_MAP = {
     "upcxx": "UPC++",
     "mp": "OpenMP"
@@ -171,6 +175,8 @@ def main(args):
             for edge_proportion in edge_proportions:
                 xs, ys = get_data(data, test, node_size=node_size, edge_proportion=edge_proportion)
                 graph_unweighted(xs, ys, test, node_size=node_size, edge_size=int(node_size*edge_proportion))
+
+        
 
     for test in TESTS_WEIGHTED:
         print(test)
