@@ -77,7 +77,7 @@ def cc(p, num_nodes, kind):
     return total_time
 
 ALL_TESTS = {
-    'bf': bf,
+    #'bf': bf,
     'bfs': bfs,
     'cc': cc,
     'pagerank': pagerank
