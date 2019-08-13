@@ -128,8 +128,8 @@ def init(args):
     global NUM_ITERS
 
     weighted, unweighted = get_real_graphs(Path(config.get("DEFAULT", "RealGraphPath")))
-    GRAPHS_WEIGHTED += weighted[1:3]
-    GRAPHS_UNWEIGHTED += unweighted[3:4]
+    GRAPHS_WEIGHTED += weighted
+    GRAPHS_UNWEIGHTED += unweighted
     CODE_PATH = Path(config.get("DEFAULT", "CodePath"))
     NUM_ITERS = args.num_iters
     
