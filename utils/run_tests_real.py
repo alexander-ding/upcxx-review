@@ -14,15 +14,14 @@ GRAPHS_WEIGHTED = []
 CODE_PATH = None
 
 def pagerank(p, num_nodes, kind):
-    num_iters = 16
     print("\nGraph: {}".format(p))
     name = 'pagerank {}'.format(p)
     total_time = 0.0
-    for i in range(num_iters):
+    for i in range(NUM_ITERS):
         print("Trial {}".format(i))
         run = run_mp if kind == 'mp' else run_upcxx
         total_time += run(name, num_nodes)[0]
-    total_time /= num_iters
+    total_time /= NUM_ITERS
     return total_time
 
 def bfs(p, num_nodes, kind):
@@ -31,8 +30,7 @@ def bfs(p, num_nodes, kind):
     with open(p) as f:
         n = int(f.readline()[:-1])
     
-    num_iters = 16
-    xs = np.random.choice(n, num_iters, replace=False)
+    xs = np.random.choice(n, NUM_ITERS, replace=False)
     
     total_time = 0.0
     for i, x in enumerate(xs):
@@ -41,7 +39,7 @@ def bfs(p, num_nodes, kind):
         run = run_mp if kind == 'mp' else run_upcxx
         time = run(name, num_nodes)[0]
         total_time += time
-    total_time /= num_iters
+    total_time /= NUM_ITERS
     return total_time
 
 def bf(p, num_nodes, kind):
@@ -50,8 +48,7 @@ def bf(p, num_nodes, kind):
     with open(p) as f:
         n = int(f.readline()[:-1])
     
-    num_iters = 16
-    xs = np.random.choice(n, num_iters, replace=False)
+    xs = np.random.choice(n, NUM_ITERS, replace=False)
     
     total_time = 0.0
     for i, x in enumerate(xs):
@@ -60,20 +57,19 @@ def bf(p, num_nodes, kind):
         run = run_mp if kind == 'mp' else run_upcxx
         total_time += run(name, num_nodes)[0]
         
-    total_time /= num_iters
+    total_time /= NUM_ITERS
     return total_time
 
 def cc(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
-    num_iters = 16
     name = 'connected_components {}'.format(p)
     
     total_time = 0.0
-    for i in range(num_iters):
+    for i in range(NUM_ITERS):
         print("Trial {}".format(i))
         run = run_mp if kind == 'mp' else run_upcxx
         total_time += run(name, num_nodes)[0]
-    total_time /= num_iters
+    total_time /= NUM_ITERS
     return total_time
 
 ALL_TESTS = {
@@ -129,12 +125,14 @@ def init(args):
     global GRAPHS_UNWEIGHTED
     global GRAPHS_WEIGHTED
     global CODE_PATH
+    global NUM_ITERS
 
     weighted, unweighted = get_real_graphs(Path(config.get("DEFAULT", "RealGraphPath")))
-    GRAPHS_WEIGHTED += weighted
-    GRAPHS_UNWEIGHTED += unweighted
+    GRAPHS_WEIGHTED += weighted[1:3]
+    GRAPHS_UNWEIGHTED += unweighted[3:4]
     CODE_PATH = Path(config.get("DEFAULT", "CodePath"))
-
+    NUM_ITERS = args.num_iters
+    
 def main(args):
     num_nodes_min = args.num_nodes_min
     num_nodes_max = args.num_nodes_max
@@ -142,12 +140,13 @@ def main(args):
     init(args)
 
     results = {}
-    for test in ALL_TESTS.keys():
+    tests = ALL_TESTS.keys() if args.test == 'all' else [args.test]
+    for test in tests:
         results[test] = {}
         if test != 'bf':
             graphs = GRAPHS_UNWEIGHTED
         else:
-            graphs = GRAPHS_WEIGHTED
+            graphs = GRAPHS_WEIGHTED[1:]
         for graph in graphs:
             p, info = graph
             results[test][info['name']] = {'info':info, 'data':[]}
@@ -156,6 +155,7 @@ def main(args):
                 while num_nodes <= num_nodes_max:
                     try:
                         time = ALL_TESTS[test](p, num_nodes, kind)
+                        print(time)
                         results[test][info['name']]['data'].append((num_nodes, time))
                     except Exception as e:
                         print(e)
@@ -174,9 +174,13 @@ if __name__ == "__main__":
         raise Exception("run_tests.py must be run from the top-level directory of the repository")
     
     parser = argparse.ArgumentParser(description="Run tests on OpenMP and UPC++")
+    parser.add_argument('--test', type=str, default='all', help='The test(s) to run. "all" runs all tests')
     parser.add_argument('--num_nodes_min', type=int, default=1, help="The minimum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--num_nodes_max', type=int, default=32, help="The maximum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--output', type=str, default="test_results_real.json", help="The output file generated when the test is completed")
+    parser.add_argument('--num_iters', type=int, default=16, help="The number of iterations for each test")
 
     args = parser.parse_args()
+    
+    
     main(args)

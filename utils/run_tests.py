@@ -197,6 +197,7 @@ def bf_upcxx(num_nodes):
         name = 'bellman_ford {} 0'.format(p)
         try:
             time = run_upcxx(name, num_nodes)
+            print(time)
             result.append({'error':False, 'time':time[0], **info})
         except:
             print("Error when running {} with {} cores".format(name, num_nodes))
@@ -312,8 +313,8 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Run tests on OpenMP and UPC++")
     parser.add_argument('test', type=str, help="The name of the test to be run. Input all for a proper test run")
-    parser.add_argument('--num_nodes_min', type=int, default=2, help="The minimum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
-    parser.add_argument('--num_nodes_max', type=int, default=2, help="The maximum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
+    parser.add_argument('--num_nodes_min', type=int, default=1, help="The minimum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
+    parser.add_argument('--num_nodes_max', type=int, default=32, help="The maximum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--output', type=str, default="test_results.json", help="The output file generated when the test is completed")
     parser.add_argument('--dataset', type=str, default="random", choices=['random', 'real', 'all'], help="The graphs to use for testing")
 
