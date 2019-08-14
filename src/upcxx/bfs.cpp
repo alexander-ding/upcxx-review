@@ -3,6 +3,8 @@
 #include <chrono>
 #include <ctime> 
 #include <climits>
+#include <stdlib.h> 
+#include <time.h>
 
 using namespace upcxx;
 template <typename T>
@@ -101,22 +103,30 @@ bool verify(Graph& g, int root, vector<int> dist_in) {
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        cout << "Usage: ./bfs <path_to_graph> <root>" << endl;
+        cout << "Usage: ./bfs <path_to_graph> <num_iters>" << endl;
         exit(-1);
     }
 
     init();
 
     Graph g = Graph(argv[1]);
-    int root = atoi(argv[2]);
-    barrier(); 
+    int num_iters = atoi(argv[2]);
 
-    auto time_before = std::chrono::system_clock::now();
-    vector<int> dist = bfs(g, root);
-    auto time_after = std::chrono::system_clock::now();
-    std::chrono::duration<double> delta_time = time_after - time_before;
+    barrier(); 
+    srand(time(NULL));
+    float current_time = 0.0;
+    for (int i = 0; i < num_iters; i++) {
+        dist_object<int> root(rand() % g.num_nodes);
+        int root_local = root.fetch(0).wait();
+        auto time_before = std::chrono::system_clock::now();
+        vector<int> dist = bfs(g, root_local);
+        auto time_after = std::chrono::system_clock::now();
+        std::chrono::duration<double> delta_time = time_after - time_before;
+        current_time += delta_time.count();
+    }
+
     if (rank_me() == 0) {
-        std::cout << delta_time.count() << std::endl;
+        std::cout << current_time / num_iters << std::endl;
         /* if (!verify(g, root, dist)) {
             std::cerr << "Verification not correct" << endl;
         } */

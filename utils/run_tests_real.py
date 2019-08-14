@@ -15,62 +15,36 @@ CODE_PATH = None
 
 def pagerank(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
-    name = 'pagerank {}'.format(p)
-    total_time = 0.0
-    for i in range(NUM_ITERS):
-        print("Trial {}".format(i))
-        run = run_mp if kind == 'mp' else run_upcxx
-        total_time += run(name, num_nodes)[0]
-    total_time /= NUM_ITERS
-    return total_time
+    name = 'pagerank {} {}'.format(p, NUM_ITERS)
+    run = run_mp if kind == 'mp' else run_upcxx
+    time = run(name, num_nodes, NUM_ITERS)[0]
+    return time
 
 def bfs(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
-
-    with open(p) as f:
-        n = int(f.readline()[:-1])
     
-    xs = np.random.choice(n, NUM_ITERS, replace=False)
-    
-    total_time = 0.0
-    for i, x in enumerate(xs):
-        print("Trial {}".format(i))
-        name = 'bfs {} {}'.format(p, x)
-        run = run_mp if kind == 'mp' else run_upcxx
-        time = run(name, num_nodes)[0]
-        total_time += time
-    total_time /= NUM_ITERS
-    return total_time
+    name = 'bfs {} {}'.format(p, NUM_ITERS)
+    run = run_mp if kind == 'mp' else run_upcxx
+    time = run(name, num_nodes)[0]
+    return time
 
 def bf(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
 
-    with open(p) as f:
-        n = int(f.readline()[:-1])
-    
-    xs = np.random.choice(n, NUM_ITERS, replace=False)
-    
-    total_time = 0.0
-    for i, x in enumerate(xs):
-        print("Trial {}".format(i))
-        name = 'bellman_ford {} {}'.format(p, x)
-        run = run_mp if kind == 'mp' else run_upcxx
-        total_time += run(name, num_nodes)[0]
+    name = 'bellman_ford {} {}'.format(p, NUM_ITERS)
+    run = run_mp if kind == 'mp' else run_upcxx
+    time = run(name, num_nodes)[0]
         
-    total_time /= NUM_ITERS
-    return total_time
+    return time
 
 def cc(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
-    name = 'connected_components {}'.format(p)
     
-    total_time = 0.0
-    for i in range(NUM_ITERS):
-        print("Trial {}".format(i))
-        run = run_mp if kind == 'mp' else run_upcxx
-        total_time += run(name, num_nodes)[0]
-    total_time /= NUM_ITERS
-    return total_time
+    name = 'connected_components {} {}'.format(p, NUM_ITERS)
+    run = run_mp if kind == 'mp' else run_upcxx
+    time = run(name, num_nodes)[0]
+
+    return time
 
 ALL_TESTS = {
     'bf': bf,

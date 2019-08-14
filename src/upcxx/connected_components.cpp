@@ -79,22 +79,26 @@ vector<int> connected_components(Graph &g) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        cout << "Usage: ./connected_components <path_to_graph>" << endl;
+    if (argc != 3) {
+        cout << "Usage: ./connected_components <path_to_graph> <num_iters>" << endl;
         exit(-1);
     }
 
     init();
 
     Graph g(argv[1]);
+    int num_iters = atoi(argv[2]);
     barrier(); 
-
-    auto time_before = std::chrono::system_clock::now();
-    vector<int> labels = connected_components(g);
-    auto time_after = std::chrono::system_clock::now();
-    std::chrono::duration<double> delta_time = time_after - time_before;
+    float current_time = 0.0;
+    for (int i = 0; i < num_iters; i++) {
+        auto time_before = std::chrono::system_clock::now();
+        vector<int> labels = connected_components(g);
+        auto time_after = std::chrono::system_clock::now();
+        std::chrono::duration<double> delta_time = time_after - time_before;
+        current_time += delta_time.count();
+    }
     if (rank_me() == 0) {
-        std::cout << delta_time.count() << std::endl;
+        std::cout << current_time / num_iters << std::endl;
         /* if (!verify(g, root, dist)) {
             std::cerr << "Verification not correct" << endl;
         } */

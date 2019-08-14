@@ -132,18 +132,24 @@ bool verify(Graph& g, vector<int>& labels_new) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        cout << "Usage: ./connected_components <path_to_graph>" << endl;
+    if (argc != 3) {
+        cout << "Usage: ./connected_components <path_to_graph> <num_iters>" << endl;
         exit(-1);
     }
     
     Graph g(argv[1]);
+    int num_iters = atoi(argv[2]);
+    float currnet_time = 0.0;
+    for (int i = 0; i < num_iters; i++) {
+        auto time_before = chrono::system_clock::now();
+        vector<int> labels = connected_components(g);
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta_time = time_after - time_before;
+        currnet_time += delta_time.count();
+    }
 
-    auto time_before = chrono::system_clock::now();
-    vector<int> labels = connected_components(g);
-    auto time_after = chrono::system_clock::now();
-    chrono::duration<double> delta_time = time_after - time_before;
-    cout << delta_time.count() << endl;
+    
+    cout << currnet_time / num_iters << endl;
 
     /*if (!verify(g, labels)) {
         cerr << "Wrong!" << endl;

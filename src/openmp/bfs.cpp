@@ -99,15 +99,23 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    int root = atoi(argv[2]);
+    int num_iters = atoi(argv[2]);
     
     Graph g(argv[1]);
-    auto time_before = chrono::system_clock::now();
-    vector<int> scores = bfs(g, root);
 
-    auto time_after = chrono::system_clock::now();
-    chrono::duration<double> delta_time = time_after - time_before;
-    cout << delta_time.count() << endl;
+    float current_time = 0.0;
+    srand(time(NULL));
+    for (int i = 0; i < num_iters; i++) {
+        int root = rand() % g.num_nodes();
+        auto time_before = chrono::system_clock::now();
+        vector<int> scores = bfs(g, root);
+
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta_time = time_after - time_before;
+        current_time += delta_time.count();
+    }
+    
+    cout << current_time / num_iters << endl;
 
     /* if (!verify(g, root, scores)) {
         cerr << "BFS result is not correct" << endl;

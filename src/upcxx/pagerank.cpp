@@ -76,22 +76,28 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        cout << "Usage: ./pagerank <path_to_graph>" << endl;
+    if (argc != 3) {
+        cout << "Usage: ./pagerank <path_to_graph> <num_iters>" << endl;
         exit(-1);
     }
 
     init();
 
     Graph g = Graph(argv[1]);
+    int num_iters = atoi(argv[2]);
     barrier(); 
 
-    auto time_before = std::chrono::system_clock::now();
-    vector<float> scores = pagerank(g, 10);
-    auto time_after = std::chrono::system_clock::now();
-    std::chrono::duration<double> delta_time = time_after - time_before;
+    float current_time = 0.0;
+    for (int i = 0; i < num_iters; i++) {
+        auto time_before = std::chrono::system_clock::now();
+        vector<float> scores = pagerank(g, 10);
+        auto time_after = std::chrono::system_clock::now();
+        std::chrono::duration<double> delta_time = time_after - time_before;
+        current_time += delta_time.count();
+    }
+    
     if (rank_me() == 0) {
-        std::cout << delta_time.count() << std::endl;
+        std::cout << current_time / num_iters << std::endl;
     }
     finalize();
 }

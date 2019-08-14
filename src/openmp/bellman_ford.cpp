@@ -7,6 +7,9 @@
 #include <vector>
 #include <queue>
 #include <climits>
+#include <stdlib.h> 
+#include <time.h>
+
 
 #include "graph_weighted.hpp"
 
@@ -140,20 +143,26 @@ bool verify(Graph& g, int root, vector<int>& input_dist) {
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        cout << "Usage: ./bellman_ford <path_to_graph> <root_id>" << endl;
+        cout << "Usage: ./bellman_ford <path_to_graph> <num_iters>" << endl;
         exit(-1);
     }
-
-    const int root = atoi(argv[2]);
+    const int num_iters = atoi(argv[2]);
     
     Graph g(argv[1]);
 
-    auto time_before = chrono::system_clock::now();
-    vector<int> dists = bellman_ford(g, root);
+    float current_time = 0.0;
+    srand(time(NULL));
+    for (int i = 0; i < num_iters; i++) {
+        int root = rand() % g.num_nodes();
+        auto time_before = chrono::system_clock::now();
+        vector<int> dists = bellman_ford(g, root);
 
-    auto time_after = chrono::system_clock::now();
-    chrono::duration<double> delta_time = time_after - time_before;
-    cout << delta_time.count() << endl;
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta_time = time_after - time_before;
+        current_time += delta_time.count();
+    }
+   
+    cout << current_time / num_iters << endl;
     
     /*if (!verify(g, root, dists)) {
         cerr << "Wrong!" << endl;
