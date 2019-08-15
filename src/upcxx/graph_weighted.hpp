@@ -77,7 +77,7 @@ Graph::Graph(char *path) : out_offsets(vector<int>()), out_edges(vector<int>()),
             start_offset = offset;
         }
         if (i >= rank_start && i < rank_end)
-            out_offsets_vector[i] = offset-start_offset;
+            out_offsets_vector[i-rank_start] = offset-start_offset;
         if (i == rank_end)
             end_offset = offset;
     }

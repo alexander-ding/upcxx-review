@@ -66,13 +66,13 @@ Graph::Graph(char *path) : out_offsets(vector<int>()), out_edges(vector<int>()),
             start_offset = offset;
         }
         if (i >= rank_start && i < rank_end)
-            out_offsets_vector[i] = offset-start_offset;
+            out_offsets_vector[i-rank_start] = offset-start_offset;
         if (i == rank_end)
             end_offset = offset;
     }
     if (end_offset == -1) // if unset, set it
         end_offset = m;
-
+    
     int current_node_end = -1;
     int current_node = -1;
     for (int i = 0; i < m; i++) {
