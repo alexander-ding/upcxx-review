@@ -17,7 +17,7 @@ def pagerank(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
     name = 'pagerank {} {}'.format(p, NUM_ITERS)
     run = run_mp if kind == 'mp' else run_upcxx
-    time = run(name, num_nodes, NUM_ITERS)[0]
+    time = run(name, num_nodes)[0]
     return time
 
 def bfs(p, num_nodes, kind):
