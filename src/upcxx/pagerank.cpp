@@ -27,7 +27,6 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
     dist_object<global_ptr<float>> outgoing_contrib(new_array<float>(g.num_nodes));
     
     for (int iter = 0; iter < max_iters; iter++) {
-        cout << iter << endl;
         double error = 0; 
         global_ptr<float> root_contrib = outgoing_contrib.fetch(0).wait();
         future<> fut_all = make_future();
@@ -83,9 +82,7 @@ int main(int argc, char *argv[]) {
     }
 
     init();
-
     Graph g = Graph(argv[1]);
-    cout << "loaded" << endl;
     int num_iters = atoi(argv[2]);
     barrier(); 
 
@@ -96,7 +93,6 @@ int main(int argc, char *argv[]) {
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
-        cout << num_iters << endl;
     }
     
     if (rank_me() == 0) {

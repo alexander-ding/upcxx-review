@@ -49,59 +49,62 @@ Graph::Graph(char *path) : out_offsets(vector<int>()), out_edges(vector<int>()),
     num_nodes = n;
 
     vector<int> temp_offsets(n);
-    vector<int> temp_edges(m);
     int offset, edge; 
+    int start_offset;
+    int end_offset = -1;
+
+    vector<int> in_offsets_vector(rank_end-rank_start);
+    vector<int> in_edges_vector;
+    vector<vector<int>> in_edges_matrix(rank_end-rank_start);
+    vector<int> out_offsets_vector(rank_end-rank_start);
+    vector<int> out_edges_vector;
+
     for (int i = 0; i < n; i++) {
         fin >> offset;
-        temp_offsets[i] = offset;
+        temp_offsets[i] = offset-start_offset;
+        if (i == rank_start) {
+            start_offset = offset;
+        }
+        if (i >= rank_start && i < rank_end)
+            out_offsets_vector[i] = offset-start_offset;
+        if (i == rank_end)
+            end_offset = offset;
     }
+    if (end_offset == -1) // if unset, set it
+        end_offset = m;
 
+    int current_node_end = -1;
+    int current_node = -1;
     for (int i = 0; i < m; i++) {
+        if (i >= current_node_end) {
+            current_node += 1;
+            current_node_end = (i == (m-1)) ? m : temp_offsets[current_node+1];
+        }
+
         fin >> edge;
-        temp_edges[i] = edge;
-    }
-
-    vector<vector<int>> edges_out(n); 
-    int index = 0;
-    for (int i = 0; i < n; i++) {
-        int limit = (i==(n-1)) ? (m-index) : (temp_offsets[i+1]-temp_offsets[i]);
-        for (int j = 0; j < limit; j++) {
-            edges_out[i].push_back(temp_edges[index]);
-            index++;
+        if (i >= start_offset && i < end_offset) {
+            out_edges_vector.push_back(edge);
         }
-    }
 
-    vector<vector<int>> edges_in(n);
-    for (int i = 0; i < edges_out.size(); i++) {
-        for (int j = 0; j < edges_out[i].size(); j++) {
-            edges_in[edges_out[i][j]].push_back(i);
+        // if the node_to is within desired range
+        if (edge >= rank_start && edge < rank_end) {
+            in_edges_matrix[edge-rank_start].push_back(current_node);
+        }    
+    }
+    int offset_temp = 0;
+    for (int i = 0; i < (rank_end-rank_start); i++) {
+        in_offsets_vector[i] = offset_temp;
+        for (int j = 0; j < in_edges_matrix[i].size(); j++) {
+            in_edges_vector.push_back(in_edges_matrix[i][j]);
         }
+        offset_temp += in_edges_matrix[i].size();
     }
 
-    _populate(edges_in, true);
-    _populate(edges_out, false);
-}
+    *in_offsets = in_offsets_vector;
+    *in_edges = in_edges_vector;
 
-void Graph::_populate(vector<vector<int>> & edges, bool in) {
-    vector<int> local_offsets(rank_end-rank_start);
-    vector<int> local_edges;
-    local_offsets[0] = 0;
-    for (int i = rank_start; i < rank_end; i++) {
-        int offset = edges[i].size();
-        if (i != (rank_end-1))
-            local_offsets[i-rank_start+1] = local_offsets[i-rank_start]+offset;
-        for (int j = 0; j < offset; j++) {
-            local_edges.push_back(edges[i][j]);
-        }
-    }
-    
-    if (in) {
-        *in_offsets = local_offsets;
-        *in_edges = local_edges;
-    } else {
-        *out_offsets = local_offsets;
-        *out_edges = local_edges;
-    }
+    *out_offsets = out_offsets_vector;
+    *out_edges = out_edges_vector;
 }
 
 int Graph::in_degree(const int n)  {
