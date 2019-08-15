@@ -21,6 +21,43 @@ void print_vector(const vector<T> & v) {
     cout << endl;
 }
 
+void bfs_sparse(Graph& g, vector<int>& dist, vector<int>& frontier, vector<int>& next_frontier, int level) {
+    #pragma omp parallel for
+    for (int i = 0; i < frontier.size(); i++) {
+        int u = frontier[i];
+        vector<int> neighbors = g.out_neighbors(u);
+        #pragma omp parallel for
+        for (int j = 0; j < g.out_degree(u); j++) {
+            int v = neighbors[j];
+            if (dist[v] == INT_MAX) {
+                #pragma omp critical
+                next_frontier.push_back(v);
+
+                dist[v] = level;
+            }
+        }
+    }
+}
+
+void bfs_dense(Graph& g, vector<int>& dist, vector<int>& frontier, vector<int>& next_frontier, int level) {
+    #pragma omp parallel for
+    for (int u = 0; u < g.num_nodes(); u++) {
+        // ignore if distance is set already
+        if (dist[u] != INT_MAX) continue;
+        vector<int> neighbors = g.in_neighbors(u);
+        #pragma omp parallel for
+        for (int j = 0; j < g.in_degree(u); j++) {
+            int v = neighbors[j];
+            if (dist[v] < (dist[u]-1)) {
+                #pragma omp critical
+                next_frontier.push_back(u);
+
+                dist[u] = dist[v] + 1;
+            }
+        }
+    }
+}
+
 vector<int> bfs(Graph& g, int root) {
     vector<int> dist(g.num_nodes());
     # pragma omp parallel for
@@ -32,65 +69,15 @@ vector<int> bfs(Graph& g, int root) {
     vector<int> frontier, next_frontier;
     frontier.push_back(root);
     while (frontier.size() != 0) {
-        #pragma omp parallel for
-        for (int i = 0; i < frontier.size(); i++) {
-            int u = frontier[i];
-            vector<int> neighbors = g.out_neighbors(u);
-            #pragma omp parallel for
-            for (int j = 0; j < g.out_degree(u); j++) {
-                int v = neighbors[j];
-                if (dist[v] == INT_MAX) {
-                    #pragma omp critical
-                    next_frontier.push_back(v);
+        // for now use exclusively dense
+        bfs_dense(g, dist, frontier, next_frontier, level);
 
-                    dist[v] = level;
-                }
-            }
-        }
         frontier = next_frontier; 
         next_frontier.clear();
         level += 1; 
     }
 
     return dist;
-}
-
-bool verify(Graph& g, int root, vector<int> dist_in) {
-    vector<int> dist(g.num_nodes());
-
-    if (dist.size() != dist_in.size())
-        return false;
-
-    for (int i = 0; i < g.num_nodes(); i++)
-        dist[i] = INT_MAX; // set INF
-
-    dist[root] = 0;
-    int level = 1;
-    vector<int> frontier, next_frontier;
-    frontier.push_back(root);
-    while (frontier.size() != 0) {
-        for (int i = 0; i < frontier.size(); i++) {
-            int u = frontier[i];
-            vector<int> neighbors = g.out_neighbors(u);
-            for (int j = 0; j < g.out_degree(u); j++) {
-                int v = neighbors[j];
-                if (dist[v] == INT_MAX) {
-                    next_frontier.push_back(v);
-                    dist[v] = level;
-                }
-            }
-        }
-        frontier = next_frontier; 
-        next_frontier.clear();
-        level += 1; 
-    }
-
-    for (int i = 0; i < dist.size(); i++) {
-        if (dist[i] != dist_in[i]) {
-            return false;
-        }
-    }
-    return true;
 }
 
 int main(int argc, char *argv[]) {
@@ -109,12 +96,10 @@ int main(int argc, char *argv[]) {
         int root = rand() % g.num_nodes();
         auto time_before = chrono::system_clock::now();
         vector<int> scores = bfs(g, root);
-
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
     }
-    
     cout << current_time / num_iters << endl;
 
     /* if (!verify(g, root, scores)) {
