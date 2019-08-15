@@ -53,7 +53,7 @@ if __name__ == "__main__":
         raise Exception("run_tests.py must be run from the top-level directory of the repository")
     
     parser = argparse.ArgumentParser(description="Visualize the data")
-    parser.add_argument('--input', type=str, default="test_results_real.json", help="The output file generated when the test is completed")
+    parser.add_argument('--input', type=str, default="output/real_results.json", help="The output file generated when the test is completed")
     parser.add_argument("--output_dir", type=str, default="output/", help="The directory to output the data to")
 
     args = parser.parse_args()

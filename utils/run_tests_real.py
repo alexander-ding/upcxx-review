@@ -120,7 +120,7 @@ def main(args):
         if test != 'bf':
             graphs = GRAPHS_UNWEIGHTED
         else:
-            graphs = GRAPHS_WEIGHTED[1:]
+            graphs = GRAPHS_WEIGHTED[2:3]
         for graph in graphs:
             p, info = graph
             results[test][info['name']] = {'info':info, 'data':[]}
