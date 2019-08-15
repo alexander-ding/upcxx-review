@@ -119,9 +119,11 @@ def main(args):
     for test in tests:
         results[test] = {}
         if test != 'bf':
-            graphs = [(p,d) for p,d in GRAPHS_UNWEIGHTED if d['name'] == 'com-orkut.ungraph']
+            graphs = [GRAPHS_UNWEIGHTED
         else:
-            graphs = [(p,d) for p,d in GRAPHS_WEIGHTED if d['name'] == 'com-orkut.ungraph']
+            graphs = GRAPHS_WEIGHTED
+        if args.graph != 'all':
+            graphs = [(p,d) for p,d in graphs if d['name'] == args.graph]
         for graph in graphs:
             p, info = graph
             results[test][info['name']] = {'info':info, 'data':[]}
@@ -151,6 +153,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tests on OpenMP and UPC++")
     parser.add_argument('--test', type=str, default='all', help='The test(s) to run. "all" runs all tests')
     parser.add_argument('--kind', type=str, default='all', help='Run on what platforms. "all" runs both UPC++ and OpenMP')
+    parser.add_argument('--graph', type=str, default='all', help='What graphs to run tests on. "all" runs all available graphs')
     parser.add_argument('--num_nodes_min', type=int, default=1, help="The minimum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--num_nodes_max', type=int, default=32, help="The maximum number of nodes on which to run tests. Running all tests would try node counts of [num_nodes_min, num_nodes_max]")
     parser.add_argument('--output', type=str, default="test_results_real.json", help="The output file generated when the test is completed")
