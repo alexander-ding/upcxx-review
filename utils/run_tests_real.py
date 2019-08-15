@@ -119,7 +119,7 @@ def main(args):
     for test in tests:
         results[test] = {}
         if test != 'bf':
-            graphs = [GRAPHS_UNWEIGHTED
+            graphs = GRAPHS_UNWEIGHTED
         else:
             graphs = GRAPHS_WEIGHTED
         if args.graph != 'all':
