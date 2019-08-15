@@ -118,9 +118,9 @@ def main(args):
     for test in tests:
         results[test] = {}
         if test != 'bf':
-            graphs = GRAPHS_UNWEIGHTED
+            graphs = [(p,d) for p,d in GRAPHS_UNWEIGHTED if d['name'] == 'com-orkut.ungraph']
         else:
-            graphs = GRAPHS_WEIGHTED
+            graphs = [(p,d) for p,d in GRAPHS_WEIGHTED if d['name'] == 'com-orkut.ungraph']
         for graph in graphs:
             p, info = graph
             results[test][info['name']] = {'info':info, 'data':[]}
