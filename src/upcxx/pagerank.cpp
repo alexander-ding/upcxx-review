@@ -15,7 +15,7 @@ void print_vector(const vector<T> & v) {
 
 const float damp = 0.85;
 
-vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
+vector<float> pagerank(Graph &g, int max_iters, float epsilon=0.01) {
     // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
     float init_score = 1.0f / g.num_nodes;
     float base_score = (1.0f - damp) / g.num_nodes;
@@ -40,6 +40,7 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
         // broadcast from rank 0
         float *local = outgoing_contrib->local();
         upcxx::broadcast(local, g.num_nodes, 0).wait();
+        
 
         barrier();
         float *outgoing_contrib_local = outgoing_contrib->local();
@@ -56,11 +57,13 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
             error += fabs(scores_local[n] - old_score);
         }
         float total_error = reduce_all(error, op_fast_add).wait();
-        
-        if (total_error < epsilon)
+        cout << total_error << endl;
+        cout << iter << endl;
+        if (total_error < epsilon) 
             break;
     }
     global_ptr<float> root_score = scores.fetch(0).wait();
+    
     future<> fut_all = make_future();
     for (int i = g.rank_start; i < g.rank_end; i++)
         fut_all = when_all(fut_all, rput(scores_local[i], root_score+i));
@@ -71,6 +74,9 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0) {
     barrier();
     vector<float> scores_ret;
     scores_ret.assign(local, local+g.num_nodes);
+    if (rank_me() == 0)
+        print_vector(scores_ret);
+    
     return scores_ret;
 }
 
@@ -84,6 +90,9 @@ int main(int argc, char *argv[]) {
     init();
     Graph g = Graph(argv[1]);
     int num_iters = atoi(argv[2]);
+    print_vector(g.in_neighbors(1));
+    cout << g.out_degree(0) << endl;
+    cout << g.out_degree(3) << endl;
     barrier(); 
 
     float current_time = 0.0;

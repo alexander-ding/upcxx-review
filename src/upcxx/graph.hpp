@@ -61,7 +61,7 @@ Graph::Graph(char *path) : out_offsets(vector<int>()), out_edges(vector<int>()),
 
     for (int i = 0; i < n; i++) {
         fin >> offset;
-        temp_offsets[i] = offset-start_offset;
+        temp_offsets[i] = offset;
         if (i == rank_start) {
             start_offset = offset;
         }
@@ -78,7 +78,7 @@ Graph::Graph(char *path) : out_offsets(vector<int>()), out_edges(vector<int>()),
     for (int i = 0; i < m; i++) {
         if (i >= current_node_end) {
             current_node += 1;
-            current_node_end = (i == (m-1)) ? m : temp_offsets[current_node+1];
+            current_node_end = (current_node == (n-1)) ? m : temp_offsets[current_node+1];
         }
 
         fin >> edge;

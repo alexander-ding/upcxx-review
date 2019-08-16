@@ -33,7 +33,9 @@
         "streambuf": "cpp",
         "string_view": "cpp",
         "tuple": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "deque": "cpp",
+        "string": "cpp"
     },
     "python.pythonPath": "/anaconda3/bin/python"
 }

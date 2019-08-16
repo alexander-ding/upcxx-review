@@ -49,7 +49,7 @@ vector<float> pagerank(const Graph &g, int max_iters, float epsilon=0) {
     return scores;
 }
 
-bool verify(const vector<float> &scores_compare, const Graph &g, int max_iters, float epsilon=0.0) {
+bool verify(const vector<float> &scores_compare, const Graph &g, int max_iters, float epsilon=0.01) {
     float init_score = 1.0f / g.num_nodes();
     float base_score = (1.0f - damp) / g.num_nodes();
     vector<float> scores(g.num_nodes(), init_score);
