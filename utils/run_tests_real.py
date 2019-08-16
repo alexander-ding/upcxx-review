@@ -115,7 +115,7 @@ def main(args):
 
     results = {}
     tests = ALL_TESTS.keys() if args.test == 'all' else [args.test]
-    kinds = ['upcxx', 'mp'] if args.test == 'all' else [args.test]
+    kinds = ['upcxx', 'mp'] if args.test == 'all' else [args.kind]
     for test in tests:
         results[test] = {}
         if test != 'bf':
