@@ -57,8 +57,6 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0.01) {
             error += fabs(scores_local[n] - old_score);
         }
         float total_error = reduce_all(error, op_fast_add).wait();
-        cout << total_error << endl;
-        cout << iter << endl;
         if (total_error < epsilon) 
             break;
     }
@@ -74,8 +72,6 @@ vector<float> pagerank(Graph &g, int max_iters, float epsilon=0.01) {
     barrier();
     vector<float> scores_ret;
     scores_ret.assign(local, local+g.num_nodes);
-    if (rank_me() == 0)
-        print_vector(scores_ret);
     
     return scores_ret;
 }
@@ -90,9 +86,6 @@ int main(int argc, char *argv[]) {
     init();
     Graph g = Graph(argv[1]);
     int num_iters = atoi(argv[2]);
-    print_vector(g.in_neighbors(1));
-    cout << g.out_degree(0) << endl;
-    cout << g.out_degree(3) << endl;
     barrier(); 
 
     float current_time = 0.0;
