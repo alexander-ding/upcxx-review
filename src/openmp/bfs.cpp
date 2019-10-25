@@ -12,6 +12,8 @@
 
 using namespace std;
 
+const int THRESHOLD = 1000;
+
 template <typename T>
 void print_vector(const vector<T> & v) {
     cout << endl;
@@ -20,6 +22,8 @@ void print_vector(const vector<T> & v) {
     }
     cout << endl;
 }
+
+// BUG: next_frontier repeats elements (use a set instead)
 
 void bfs_sparse(Graph& g, vector<int>& dist, vector<int>& frontier, vector<int>& next_frontier, int level) {
     #pragma omp parallel for
@@ -45,7 +49,7 @@ void bfs_dense(Graph& g, vector<int>& dist, vector<int>& frontier, vector<int>& 
         // ignore if distance is set already
         if (dist[u] != INT_MAX) continue;
         vector<int> neighbors = g.in_neighbors(u);
-        #pragma omp parallel for
+        #pragma omp parallel for if (g.in_degree(u) > THRESHOLD)
         for (int j = 0; j < g.in_degree(u); j++) {
             int v = neighbors[j];
             if (dist[v] < (dist[u]-1)) {

@@ -21,6 +21,7 @@ EXTRA_FLAGS = -g
 PROGRAMS = \
   bellman_ford \
   bfs \
+  bfs_old \
   connected_components \
   hello \
   pagerank \

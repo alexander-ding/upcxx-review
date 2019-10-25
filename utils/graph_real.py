@@ -1,12 +1,15 @@
+import argparse
 import json
 import os
-import argparse
-
 from pathlib import Path
+
 import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+
+matplotlib.use('Agg')
+font = {'size': 20}
+plt.rc('font', **font)
 
 def graph_upcxx_mp(xs_upcxx, ys_upcxx, xs_mp, ys_mp, test_name, graph_name, node_size, edge_size):
     fig, ax = plt.subplots(figsize=(12, 12), dpi=300)
@@ -20,11 +23,10 @@ def graph_upcxx_mp(xs_upcxx, ys_upcxx, xs_mp, ys_mp, test_name, graph_name, node
     ax.set_ylabel("Time (s)")
     
     ax.set_xscale('log', basex=2)
-    ax.set_yscale('log', basey=10)
     ax.set_xticks(np.array(xs_mp, dtype=np.uint8))
     ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
     
-    outpath = output_dir / test_name / "{}.png".format(graph_name )
+    outpath = output_dir / test_name / "{}.png".format(graph_name)
     plt.savefig(outpath, dpi=300)
     plt.close(fig)
 
