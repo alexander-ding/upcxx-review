@@ -1,8 +1,10 @@
-from .social import *
+import random
+
 from .communities import *
 from .currency import *
+from .social import *
 from .utils import mkdir_if_necessary
-import random
+
 
 def convert_to_weighted(in_p, out_p):
     with open(in_p) as fin:
@@ -32,7 +34,7 @@ def get_all_graphs(config):
     for parser in parsers:
         parser.get()
         parser.cleanup()
-
-    for parser in parsers:
-        convert_to_weighted(parser.graph_path / parser.name, parser.graph_path.parent / "weighted" / parser.name)
     
+    for parser in parsers:
+        mkdir_if_necessary(parser.graph_path.parent / "weighted")
+        convert_to_weighted(parser.graph_path / parser.name, parser.graph_path.parent / "weighted" / parser.name)
