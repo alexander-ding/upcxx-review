@@ -1,7 +1,7 @@
 from pathlib import Path
-import requests
+
 import os
-from .utils import mkdir_if_necessary
+from .utils import mkdir_if_necessary, download_file
 
 class BaseParser:
     def __init__(self, config, name, download_url, weighted=None):
@@ -28,12 +28,9 @@ class BaseParser:
         extracted_path = self.work_path / Path(self.download_url).stem
         if extracted_path.exists():
             return extracted_path 
-        print("Preexisting file {} not found. Downloading...".format(extracted_path))
-        r = requests.get(self.download_url)
-        
-        with open(download_path, 'wb') as fp:
-            fp.write(r.content)
-
+        print("Preexisting file {} not found. Downloading to {}...".format(extracted_path, download_path))
+        download_file(self.download_url, download_path)
+    
         self._unzip(download_path)
         print("...Done")
         return extracted_path

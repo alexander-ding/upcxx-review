@@ -27,6 +27,7 @@ def get_all_graphs(config):
                TwitterCircleParser(config),
                GoogleCircleParser(config), 
                OrkutParser(config), 
+               # FriendsterParser(config),
                YoutubeParser(config)]
 
     mkdir_if_necessary(config.get("DEFAULT", "WorkPath"))
@@ -37,4 +38,6 @@ def get_all_graphs(config):
     
     for parser in parsers:
         mkdir_if_necessary(parser.graph_path.parent / "weighted")
-        convert_to_weighted(parser.graph_path / parser.name, parser.graph_path.parent / "weighted" / parser.name)
+        if not (parser.graph_path.parent / "weighted" / parser.name).exists():
+            print("Converting {} to weighted".format(parser.graph_path / parser.name))
+            convert_to_weighted(parser.graph_path / parser.name, parser.graph_path.parent / "weighted" / parser.name)
