@@ -27,6 +27,7 @@ bool priority_update(int* addr, int new_val) {
 }
 
 struct nonNegF{bool operator() (int a) {return (a>=0);}};
+struct trueF{bool operator() (bool a) {return a;}};
 
 int cc_sparse(Graph& g, int* labels, int* labels_next, int* frontier, int* frontier_next, int frontier_size, int level) {
     // update labels_next to take labels's values
@@ -56,58 +57,75 @@ int cc_sparse(Graph& g, int* labels, int* labels_next, int* frontier, int* front
         }        
     }
     
-
     frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes(), nonNegF());
     return frontier_size;
 }
 
-int cc_dense(Graph& g, int* labels, int* labels_next, int* frontier, int level) {
+int cc_dense(Graph& g, int* labels, int* labels_next, bool* frontier, bool* frontier_next, int level) {
     # pragma omp parallel for
     for (int u = 0; u < g.num_nodes(); u++) {
         // update next round of labels
         labels_next[u] = labels[u];
-
+        frontier_next[u] = false;
+        
         vector<int> neighbors = g.out_neighbors(u);
         for (int j = 0; j < g.out_degree(u); j++) {
             int v = neighbors[j];
+            if (!frontier[v]) continue; // ignore non-frontiers
             // no worry for contention, as every vertex
             // is processed by one thread at a time
             if (labels[v] < labels_next[u]) {
                 labels_next[u] = labels[v];
+                frontier_next[u] = true;
             }
         }
 
         neighbors = g.in_neighbors(u);
         for (int j = 0; j < g.in_degree(u); j++) {
             int v = neighbors[j];
+            if (!frontier[v]) continue; // ignore non-frontiers
             if (labels[v] < labels_next[u]) {
                 labels_next[u] = labels[v];
+                frontier_next[u] = true;
             }
         }
     }
 
+    int frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes());
+    return frontier_size;
+}
+
+void sparse_to_dense(int* frontier_sparse, int frontier_size, bool* frontier_dense) {
     # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++) {
-        if (labels_next[i] != labels[i]) {
-            frontier[i] = i;
+    for (int i = 0; i < frontier_size; i++) {
+        frontier_dense[frontier_sparse[i]] = true;
+    }
+}
+
+void dense_to_sparse(bool* frontier_dense, int num_nodes, int* frontier_sparse) {
+    # pragma omp parallel for
+    for (int i = 0; i < num_nodes; i++) {
+        if (frontier_dense[i]) {
+            frontier_sparse[i] = i;
         } else {
-            frontier[i] = -1;
+            frontier_sparse[i] = -1;
         }
     }
-    int frontier_size = sequence::filter(frontier, frontier, g.num_nodes(), nonNegF());
-    return frontier_size;
+    sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
 }
 
 int* cc(Graph& g) {
     int* labels = newA(int, g.num_nodes());
     int* labels_next = newA(int, g.num_nodes());
 
-    int* frontier = newA(int, g.num_nodes());
-    int* frontier_next = newA(int, g.num_nodes());
+    int* frontier_sparse = newA(int, g.num_nodes());
+    int* frontier_sparse_next = newA(int, g.num_nodes());
+    bool* frontier_dense = newA(bool, g.num_nodes());
+    bool* frontier_dense_next = newA(bool, g.num_nodes());
     # pragma omp parallel for
     for (int i = 0; i < g.num_nodes(); i++) {
         labels[i] = i; // set as own group
-        frontier[i] = i;
+        frontier_sparse[i] = i;
     }
 
     int frontier_size = g.num_nodes();
@@ -124,9 +142,18 @@ int* cc(Graph& g) {
         auto time_before = chrono::system_clock::now();
         
         if (should_be_sparse_mode) {
-            frontier_size = cc_sparse(g, labels, labels_next, frontier, frontier_next, frontier_size, level);
+            if (!is_sparse_mode) {
+                dense_to_sparse(frontier_dense, g.num_nodes(), frontier_sparse);
+            }
+            is_sparse_mode = true;
+            frontier_size = cc_sparse(g, labels, labels_next, frontier_sparse, frontier_sparse_next, frontier_size, level);
         } else {
-            frontier_size = cc_dense(g, labels, labels_next, frontier, level);
+            if (is_sparse_mode) {
+                sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
+            }
+            is_sparse_mode = false;
+            frontier_size = cc_dense(g, labels, labels_next, frontier_dense, frontier_dense_next, level);
+            swap(frontier_dense, frontier_dense_next);
         }
         swap(labels_next, labels); 
 
@@ -134,7 +161,7 @@ int* cc(Graph& g) {
         chrono::duration<double> delta = (time_after - time_before);
         cout << "Time: " << delta.count() << endl;
     }
-    free(labels_next); free(frontier); free(frontier_next);
+    free(labels_next); free(frontier_sparse); free(frontier_sparse_next); free(frontier_dense); free(frontier_dense_next); 
     return labels;
 }
 
@@ -197,7 +224,7 @@ bool verify(Graph& g, int* labels_new) {
     } while (updated_last_round_reduced);
     labels = labels_next; 
     for (int i = 0; i < labels.size(); i++) {
-        cout << labels[i] << " " << labels_new[i] << endl;
+        // cout << labels[i] << " " << labels_new[i] << endl;
         if (labels[i] != labels_new[i]) {
             return false;
         }
@@ -221,9 +248,9 @@ int main(int argc, char *argv[]) {
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
-        if (!verify(g, labels)) {
+        /*if (!verify(g, labels)) {
             cerr << "Wrong!" << endl;
-        }
+        }*/
     }
 
     
