@@ -58,21 +58,23 @@ int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, 
 
     # pragma omp parallel for
     for (VertexId u = 0; u < g.num_nodes; u++) {
-        if (!frontier[u]) continue; // ignore non-frontiers
-        
         VertexId* neighbors = g.out_neighbors(u);
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            if (priority_update(&labels_next[v], labels[u])) {
-                compare_and_compare_and_swap(&frontier_next[v]);
+            if (!frontier[v]) continue; // ignore non-frontiers
+            if (labels_next[u] > labels[v]) {
+                labels_next[u] = labels[v];
+                if (!frontier_next[u]) frontier_next[u] = true;
             }
         }
 
         neighbors = g.in_neighbors(u);
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
-            if (priority_update(&labels_next[v], labels[u])) {
-                compare_and_compare_and_swap(&frontier_next[v]);
+            if (!frontier[v]) continue; // ignore non-frontiers
+            if (labels_next[u] > labels[v]) {
+                labels_next[u] = labels[v];
+                if (!frontier_next[u]) frontier_next[u] = true;
             }
         }
     }
