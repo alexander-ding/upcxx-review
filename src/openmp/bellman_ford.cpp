@@ -46,49 +46,39 @@ bool priority_update(int* addr, int new_val) {
 
 struct nonNegF{bool operator() (int a) {return (a>=0);}};
 
-int bf_sparse(Graph& g, int* dist, int* dist_next, int* counts, int* frontier, int* frontier_next, int frontier_size, bool* visited, int level) {
-    // compute the counts for the newly generated frontier
-    # pragma omp parallel for
-    for (int i = 0; i < frontier_size; i++)
-        counts[i] = g.out_degree(frontier[i]);
-
-    int counts_size = sequence::plusScan(counts, counts, frontier_size);
-
+int bf_sparse(Graph& g, int* dist, int* dist_next, int* frontier, int* frontier_next, int frontier_size, int level) {
     // update dist_next to take dist's values
     // also reset visited 
     # pragma omp parallel for
     for (int i = 0; i < g.num_nodes(); i++) {
-        visited[i] = false;
         dist_next[i] = dist[i];
+        frontier_next[i] = -1;
     }
 
     # pragma omp parallel for
     for (int i = 0; i < frontier_size; i++) {
         int u = frontier[i];
-        int count = counts[i];
         vector<int> neighbors = g.out_neighbors(u);
         vector<int> weights = g.out_weights_neighbors(u);
         for (int j = 0; j < g.out_degree(u); j++) {
             int v = neighbors[j];
             int relax_dist = dist[u] + weights[j];
-            if (priority_update(&dist_next[v], relax_dist) && !visited[v]) {
-                frontier_next[count+j] = v;
-                visited[v] = true;
-            } else {
-                frontier_next[count+j] = -1;
+            if (priority_update(&dist_next[v], relax_dist)) {
+                frontier_next[v] = v;
             }
         }
     }
 
-    frontier_size = sequence::filter(frontier_next, frontier, counts_size, nonNegF());
+    frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes(), nonNegF());
     return frontier_size;
 }
 
-int bf_dense(Graph& g, int* dist, int* dist_next, int* counts, int level) {
+int bf_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* frontier_next, int level) {
     # pragma omp parallel for
     for (int u = 0; u < g.num_nodes(); u++) {
         // update next round of dist
         dist_next[u] = dist[u];
+        frontier_next[u] = false;
 
         vector<int> neighbors = g.in_neighbors(u);
         vector<int> weights = g.in_weights_neighbors(u); 
@@ -96,37 +86,49 @@ int bf_dense(Graph& g, int* dist, int* dist_next, int* counts, int level) {
         for (int j = 0; j < g.in_degree(u); j++) {
             int v = neighbors[j];
 
-            // if dist is INF, it can't update u
-            if (dist[v] == INT_MAX) continue;
+            // ignore neighbors not in frontier
+            if (!frontier[v]) continue;
             
             int relax_dist = dist[v]+weights[j];
-    
-            priority_update(&dist_next[u], relax_dist);
+            if (relax_dist < dist_next[u]) {
+                dist_next[u] = relax_dist;
+                frontier_next[u] = true;
+            }
         }
     }
 
-    # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++)
-        counts[i] = 0;
-    
-    # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++)
-        if (dist_next[i] != dist[i])
-            counts[i] = 1;
-
-    int frontier_size = sequence::plusScan(counts, counts, g.num_nodes());
-    
+    int frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes());
     return frontier_size;
+}
+
+void sparse_to_dense(int* frontier_sparse, int frontier_size, bool* frontier_dense) {
+    # pragma omp parallel for
+    for (int i = 0; i < frontier_size; i++) {
+        frontier_dense[frontier_sparse[i]] = true;
+    }
+}
+
+void dense_to_sparse(bool* frontier_dense, int num_nodes, int* frontier_sparse) {
+    # pragma omp parallel for
+    for (int i = 0; i < num_nodes; i++) {
+        if (frontier_dense[i]) {
+            frontier_sparse[i] = i;
+        } else {
+            frontier_sparse[i] = -1;
+        }
+    }
+    sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
 }
 
 int* bellman_ford(Graph& g, int root) {
     int* dist = newA(int, g.num_nodes());
     int* dist_next = newA(int, g.num_nodes());
-    // for each vertex in the frontier, the number of neighbors it has
-    int* counts = newA(int, g.num_nodes());
-    int* frontier = newA(int, g.num_edges());
-    int* frontier_next = newA(int, g.num_edges());
-    bool* visited = newA(bool, g.num_nodes());
+
+    int* frontier_sparse = newA(int, g.num_edges());
+    int* frontier_sparse_next = newA(int, g.num_edges());
+    bool* frontier_dense = newA(bool, g.num_edges());
+    bool* frontier_dense_next = newA(bool, g.num_edges());
+
     # pragma omp parallel for
     for (int i = 0; i < g.num_nodes(); i++) {
         dist[i] = INT_MAX; // set INF
@@ -134,7 +136,7 @@ int* bellman_ford(Graph& g, int root) {
 
     bool is_sparse_mode = true;
 
-    frontier[0] = root;
+    frontier_sparse[0] = root;
     int frontier_size = 1;
     dist[root] = 0;
 
@@ -144,45 +146,31 @@ int* bellman_ford(Graph& g, int root) {
     while (frontier_size != 0 && level < g.num_nodes()) {
         level++; 
         bool should_be_sparse_mode = frontier_size < (g.num_nodes() / threshold_fraction_denom);
+
+        cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
+        auto time_before = chrono::system_clock::now();
+
         if (should_be_sparse_mode) {
             if (!is_sparse_mode) {
-                // clear counts
-                # pragma omp parallel for
-                for (int i = 0; i < g.num_nodes(); i++)
-                    counts[i] = 0;
-                
-                // set counts to 1 where it is frontier
-                // i.e., where dist has changed in last round
-                # pragma omp parallel for
-                for (int i = 0; i < g.num_nodes(); i++)
-                    if (dist_next[i] != dist[i])
-                        counts[i] = 1;
-                
-                // take prefix sum for counts
-                sequence::plusScan(counts, counts, g.num_nodes());
-
-                // set the frontier
-                # pragma omp parallel for
-                for (int i = 0; i < g.num_nodes() - 1; i++)
-                    if (counts[i] != counts[i+1])
-                        frontier[counts[i]] = i;
-
-                // handle the special case of the last member
-                if (counts[g.num_nodes()-1] == frontier_size-1)
-                    frontier[frontier_size-1] = g.num_nodes()-1;
+                dense_to_sparse(frontier_dense, g.num_nodes(), frontier_sparse);
             }
-
             is_sparse_mode = true;
-            frontier_size = bf_sparse(g, dist, dist_next, counts, frontier, frontier_next, frontier_size, visited, level);
+            frontier_size = bf_sparse(g, dist, dist_next, frontier_sparse, frontier_sparse_next, frontier_size, level);
         } else {
-            // dense version
+            if (is_sparse_mode) {
+                sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
+            }
             is_sparse_mode = false;
-            frontier_size = bf_dense(g, dist, dist_next, counts, level);
+            frontier_size = bf_dense(g, dist, dist_next, frontier_dense, frontier_dense_next, level);
         }
         swap(dist, dist_next);
+
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta = (time_after - time_before);
+        cout << "Time: " << delta.count() << endl;
     }
 
-    free(dist_next); free(frontier); free(frontier_next); free(counts); free(visited);
+    free(dist_next); free(frontier_dense); free(frontier_dense_next); free(frontier_sparse); free(frontier_sparse_next);
     
     return dist;
 }
