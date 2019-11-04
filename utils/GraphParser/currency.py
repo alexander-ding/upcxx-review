@@ -1,6 +1,8 @@
-from .base import BaseParser
-import numpy as np
 import os
+
+import numpy as np
+
+from .base import BaseParser
 
 page_url = "https://snap.stanford.edu/data/soc-sign-bitcoin-otc.html"
 
@@ -9,13 +11,14 @@ class BitcoinOTCParser(BaseParser):
         download_url = "https://snap.stanford.edu/data/soc-sign-bitcoinotc.csv.gz"
         name = "soc-sign-bitcoinotc.txt"
         weighted = True
-        super().__init__(config, name, download_url, weighted)
+        directed = True
+        super().__init__(config, name, download_url, directed, weighted)
 
 
     def get(self):
         input_graph_dir = self._get_if_necessary()
         if input_graph_dir is None:
-            return
+            return False
 
         import csv
         ids = set()
@@ -39,8 +42,8 @@ class BitcoinOTCParser(BaseParser):
         for fro, to, weight in edges:
             # graph is directed
             self.nodes[id_map[fro]].append((id_map[to], weight))
-
-        self.write()
+        
+        return True
 
 page_url = "https://snap.stanford.edu/data/soc-sign-bitcoin-alpha.html"
 
@@ -49,13 +52,14 @@ class BitcoinAlphaParser(BaseParser):
         download_url = "https://snap.stanford.edu/data/soc-sign-bitcoinalpha.csv.gz"
         name = "soc-sign-bitcoinalpha.txt"
         weighted = True
-        super().__init__(config, name, download_url, weighted)
+        directed = True
+        super().__init__(config, name, download_url, directed, weighted)
 
 
     def get(self):
         input_graph_dir = self._get_if_necessary()
         if input_graph_dir is None:
-            return
+            return False
 
         import csv
         ids = set()
@@ -79,7 +83,7 @@ class BitcoinAlphaParser(BaseParser):
         for fro, to, weight in edges:
             # graph is directed
             self.nodes[id_map[fro]].append((id_map[to], weight))
-
-        self.write()
+        
+        return True
 
 __all__ = ['BitcoinOTCParser', 'BitcoinAlphaParser']

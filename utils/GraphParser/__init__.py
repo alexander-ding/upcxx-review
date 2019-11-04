@@ -21,20 +21,30 @@ def convert_to_weighted(in_p, out_p):
                 weight = random.randint(0, 10)
                 fout.write("{} {}\n".format(to_index, weight))
 
+            for _ in range(n):
+                fout.write(fin.readline())
+            
+            for _ in range(m):
+                to_index = int(fin.readline()[:-1])
+                weight = random.randint(0, 10)
+                fout.write("{} {}\n".format(to_index, weight))
+
 def get_all_graphs(config):
     from pathlib import Path
-    parsers = [FacebookCircleParser(config), 
+    parsers = [FacebookCircleParser(config),
                TwitterCircleParser(config),
+               YoutubeParser(config),
                GoogleCircleParser(config), 
                OrkutParser(config), 
                # FriendsterParser(config),
-               YoutubeParser(config)]
+               ]
 
     mkdir_if_necessary(config.get("DEFAULT", "WorkPath"))
     mkdir_if_necessary(config.get("DEFAULT", "RealGraphPath"))
     for parser in parsers:
-        parser.get()
-        parser.cleanup()
+        if parser.get():
+            parser.write()
+            # parser.cleanup()
     
     for parser in parsers:
         mkdir_if_necessary(parser.graph_path.parent / "weighted")

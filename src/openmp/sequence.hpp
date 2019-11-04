@@ -36,11 +36,6 @@ using namespace std;
 #define _SCAN_BSIZE (1 << _SCAN_LOG_BSIZE)
 
 template <class T>
-bool compare_and_swap(T *ptr, T oldval, T newval) {
-  return __sync_bool_compare_and_swap(ptr, oldval, newval);
-}
-
-template <class T>
 struct _seq {
   T* A;
   long n;

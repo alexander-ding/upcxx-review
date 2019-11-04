@@ -8,7 +8,8 @@ PROGRAMS = \
   connected_components \
   hello \
   pagerank \
-  random_access
+  random_access \
+  graph_scan
 
 all: $(PROGRAMS)
 

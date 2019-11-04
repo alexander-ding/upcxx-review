@@ -15,39 +15,39 @@ using namespace std;
 const double damp = 0.85;
 
 double pagerank_dense(Graph& g, double* scores, double* scores_next, double* errors, double* outgoing_contrib, int level) {
-    double base_score = (1.0 - damp) / g.num_nodes();
+    double base_score = (1.0 - damp) / g.num_nodes;
 
     # pragma omp parallel for
-    for (int n = 0; n < g.num_nodes(); n++)
+    for (VertexId n = 0; n < g.num_nodes; n++)
         outgoing_contrib[n] = scores[n] / g.out_degree(n);
 
     # pragma omp parallel for
-    for (int u = 0; u < g.num_nodes(); u++) {
+    for (VertexId u = 0; u < g.num_nodes; u++) {
         double sum = 0;
-        vector<int> neighbors = g.in_neighbors(u);
-        for (int j = 0; j < g.in_degree(u); j++) {
-            int v = neighbors[j];
+        VertexId* neighbors = g.in_neighbors(u);
+        for (EdgeId j = 0; j < g.in_degree(u); j++) {
+            VertexId v = neighbors[j];
             sum += outgoing_contrib[v];
         }
         scores_next[u] = base_score + damp * sum;
         errors[u] = fabs(scores_next[u] - scores[u]);
     }
 
-    double delta = sequence::plusScan(errors, errors, g.num_nodes());
+    double delta = sequence::plusScan(errors, errors, g.num_nodes);
 
     return delta;
 }
 
 double* pagerank(Graph& g, int num_iters) {
-    double* scores = newA(double, g.num_nodes());
-    double* scores_next = newA(double, g.num_nodes());
-    double* errors = newA(double, g.num_nodes());
-    double* outgoing_contrib = newA(double, g.num_nodes());
+    double* scores = newA(double, g.num_nodes);
+    double* scores_next = newA(double, g.num_nodes);
+    double* errors = newA(double, g.num_nodes);
+    double* outgoing_contrib = newA(double, g.num_nodes);
     double error = 0.0;
 
-    double init_score = 1.0 / g.num_nodes();
+    double init_score = 1.0 / g.num_nodes;
     # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++) {
+    for (VertexId i = 0; i < g.num_nodes; i++) {
         scores[i] = init_score; // set init score
     }
 
@@ -66,20 +66,23 @@ double* pagerank(Graph& g, int num_iters) {
 }
 
 bool verify(const double* scores_compare, const Graph &g, int max_iters) {
-    double init_score = 1.0 / g.num_nodes();
-    double base_score = (1.0 - damp) / g.num_nodes();
-    vector<double> scores(g.num_nodes(), init_score);
-    vector<double> incoming_sums(g.num_nodes(), 0.0);
+    double init_score = 1.0 / g.num_nodes;
+    double base_score = (1.0 - damp) / g.num_nodes;
+    vector<double> scores(g.num_nodes, init_score);
+    vector<double> incoming_sums(g.num_nodes, 0.0);
 
     for (int iter = 0; iter < max_iters; iter++) {
         double error = 0;
 
-        for (int n = 0; n < g.num_nodes(); n++) {
+        for (VertexId n = 0; n < g.num_nodes; n++) {
             double outgoing_contrib = scores[n] / g.out_degree(n);
-            for (int v : g.out_neighbors(n))
+            VertexId* neighbors = g.out_neighbors(n);
+            for (EdgeId i = 0; i < g.out_degree(n); i++) {
+                VertexId v = neighbors[i];
                 incoming_sums[v] += outgoing_contrib;
+            }
         }
-        for (int n = 0; n < g.num_nodes(); n++) {
+        for (VertexId n = 0; n < g.num_nodes; n++) {
             double old_score = scores[n];
             scores[n] = base_score + damp * incoming_sums[n];
             error += fabs(old_score - scores[n]);
@@ -88,7 +91,7 @@ bool verify(const double* scores_compare, const Graph &g, int max_iters) {
     }
 
     double error_between_scores = 0.0;
-    for (int n = 0; n < g.num_nodes(); n++) {
+    for (VertexId n = 0; n < g.num_nodes; n++) {
         error_between_scores += fabs(scores[n] - scores_compare[n]);
     }
 

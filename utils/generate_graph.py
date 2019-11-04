@@ -1,9 +1,11 @@
-import sys
-import random
 import os
-from pathlib import Path
+import random
+import sys
 from configparser import ConfigParser
+from pathlib import Path
+
 from GraphParser import mkdir_if_necessary
+
 
 class Node:
     def __init__(self, id, edges=[]):
@@ -50,6 +52,27 @@ def generate_graph(p, n, m, weighted, neg_rate=0.01):
                 else:
                     f.write('{}\n'.format(edge))
 
+        nodes_reverse = [[] for _ in range(n)]
+        for from_id, node in enumerate(nodes):
+            if weighted:
+                for to_id, weight in node.edges:
+                    nodes_reverse[to_id].append((from_id, weight))
+            else:
+                for to_id in node.edges:
+                    nodes_reverse[to_id].append(from_id)
+
+        current_e = 0
+        for node in nodes_reverse:
+            f.write('{}\n'.format(current_e))
+            current_e += len(node)
+        
+        for node in nodes_reverse:
+            for edge in node:
+                if weighted:
+                    f.write('{} {}\n'.format(edge[0], edge[1]))
+                else:
+                    f.write('{}\n'.format(edge))
+    
 def parse_list(s, t=int):
     return [t(v) for v in s.split(" ")]
 

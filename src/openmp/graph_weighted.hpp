@@ -5,156 +5,105 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
-#include <string>
-#include <sstream>
-#include <climits>
-#include <iterator>
+#include "utils.hpp"
 
 using namespace std;
 
+typedef int VertexId;
+typedef int EdgeId; 
+
 class Graph {
-    vector<int> in_offsets;
-    vector<int> in_edges;
-    vector<int> in_weights;
+    EdgeId* out_offsets;
+    VertexId* out_edges;
+    int* out_weights;
 
-    vector<int> out_offsets;
-    vector<int> out_edges;
-    vector<int> out_weights;
-    
-
-    private:
-        void _populate(vector<vector<int>> & edges, vector<vector<int>> & weights, bool in, int n);
+    EdgeId* in_offsets;
+    VertexId* in_edges;
+    int* in_weights;
 
     public:
         Graph(char *path);
-        int num_nodes() const { return out_offsets.size(); };
-        int num_edges() const { return out_edges.size(); };
-        int out_degree(int n) const;
-        int in_degree(int n) const;
 
-        vector<int> out_neighbors(int n) const;
-        vector<int> in_neighbors(int n) const;
+        VertexId num_nodes;
+        EdgeId num_edges;
+        
+        EdgeId out_degree(VertexId n) const;
+        EdgeId in_degree(VertexId n) const;
 
-        vector<int> out_weights_neighbors(int n) const;
-        vector<int> in_weights_neighbors(int n) const;
+        VertexId* out_neighbors(VertexId n) const;
+        VertexId* in_neighbors(VertexId n) const;
+
+        int* out_weights_neighbors(VertexId n) const;
+        int* in_weights_neighbors(VertexId n) const;
 };
 
 Graph::Graph(char* path) {
     ifstream fin(path);
-    int n, m;
+    VertexId n;
+    EdgeId m;
     fin >> n >> m;
+    this->num_nodes = n;
+    this->num_edges = m;
 
-    vector<int> temp_offsets(n);
-    vector<int> temp_edges(m);
-    vector<int> temp_weights(m);
-    
-    int offset, edge, weight; 
-    for (int i = 0; i < n; i++) {
+    out_offsets = newA(EdgeId, n);
+    in_offsets = newA(EdgeId, n);
+
+    out_edges = newA(EdgeId, m);
+    in_edges = newA(VertexId, m);
+
+    out_weights = newA(int, m);
+    in_weights = newA(int, m);
+
+    EdgeId offset;
+    VertexId edge;
+    int weight;
+    for (EdgeId i = 0; i < n; i++) {
         fin >> offset; 
-        temp_offsets[i] = offset;
-    }
-    for (int i = 0; i < m; i++) {
-        fin >> edge >> weight;
-        temp_edges[i] = edge;
-        temp_weights[i] = weight;
-    }
-    
-    
-    vector<vector<int>> edges_out(n); 
-    vector<vector<int>> weights_out(n);
-    int index = 0;
-    for (int i = 0; i < n; i++) {
-        int limit = (i==(n-1)) ? (m-index) : (temp_offsets[i+1]-temp_offsets[i]);
-
-        for (int j = 0; j < limit; j++) {
-            edges_out[i].push_back(temp_edges[index]);
-            weights_out[i].push_back(temp_weights[index]);
-            index++;
-        }
+        out_offsets[i] = offset;
     }
 
-    vector<vector<int>> edges_in(n);
-    vector<vector<int>> weights_in(n);
-    for (int i = 0; i < edges_out.size(); i++) {
-        for (int j = 0; j < edges_out[i].size(); j++) {
-            int from = edges_out[i][j]; // i is to
-            edges_in[from].push_back(i);
-            weights_in[from].push_back(weights_out[i][j]);
-        }
+    for (VertexId i = 0; i < m; i++) {
+        fin >> edge >> weight; // edge from current_node to node edge
+        out_edges[i] = edge;
+        out_weights[i] = weight;
     }
 
-    _populate(edges_in, weights_in, true, n);
-    _populate(edges_out, weights_out, false, n);
-}
-
-void Graph::_populate(vector<vector<int>> & edges, vector<vector<int>> & weights, bool in, int n) {
-    vector<int> local_offsets(n);
-    vector<int> local_edges;
-    vector<int> local_weights;
-    local_offsets[0] = 0;
-    for (int i = 0; i < n; i++) {
-        int offset = edges[i].size();
-        if (i != (n-1))
-            local_offsets[i+1] = local_offsets[i]+offset;
-        for (int j = 0; j < offset; j++) {
-            local_edges.push_back(edges[i][j]);
-            local_weights.push_back(weights[i][j]);
-        }
+    for (EdgeId i = 0; i < n; i++) {
+        fin >> offset; 
+        in_offsets[i] = offset;
     }
 
-    if (in) {
-        in_offsets = local_offsets;
-        in_edges = local_edges;
-        in_weights = local_weights;
-    } else {
-        out_offsets = local_offsets;
-        out_edges = local_edges;
-        out_weights = local_weights;
+    for (VertexId i = 0; i < m; i++) {
+        fin >> edge >> weight; // edge from current_node to node edge
+        in_edges[i] = edge;
+        in_weights[i] = weight;
     }
 }
 
-int Graph::out_degree(int n) const {
-    assert(n<this->num_nodes());
-    
-    if (n == (this->num_nodes()-1)) return this->num_edges()-this->out_offsets[n];
+EdgeId Graph::out_degree(VertexId n) const {
+    if (n == (this->num_nodes-1)) return this->num_edges-this->out_offsets[n];
     return this->out_offsets[n+1] - this->out_offsets[n];
 }
 
-int Graph::in_degree(int n) const {
-    assert(n<this->num_nodes());
-
-    if (n == (this->num_nodes()-1)) return this->num_edges()-this->in_offsets[n];
+EdgeId Graph::in_degree(VertexId n) const {
+    if (n == (this->num_nodes-1)) return this->num_edges-this->in_offsets[n];
     return this->in_offsets[n+1] - this->in_offsets[n];
 }
 
-vector<int> Graph::out_neighbors(int n) const {
-    assert(n<this->num_nodes());
-
-    auto begin = this->out_edges.cbegin()+this->out_offsets[n];
-    vector<int> neighbors(begin, begin+this->out_degree(n));
-    return neighbors;
+VertexId* Graph::out_neighbors(VertexId n) const {
+    return this->out_edges+this->out_offsets[n];
 }
 
-vector<int> Graph::in_neighbors(int n) const {
-    assert(n<this->num_nodes());
-
-    auto begin = this->in_edges.cbegin()+this->in_offsets[n];
-    vector<int> neighbors(begin, begin+this->in_degree(n));
-    return neighbors;
+VertexId* Graph::in_neighbors(VertexId n) const {
+    return this->in_edges+this->in_offsets[n];
 }
 
-vector<int> Graph::in_weights_neighbors(int n) const {
-    assert(n < this->num_nodes());
-    auto begin = this->in_weights.cbegin()+this->in_offsets[n];
-    vector<int> weights(begin, begin+this->in_degree(n));
-    return weights;
+int* Graph::out_weights_neighbors(VertexId n) const {
+    return this->out_weights+this->out_offsets[n];
 }
 
-vector<int> Graph::out_weights_neighbors(int n) const {
-    assert(n < this->num_nodes());
-    auto begin = this->out_weights.cbegin()+this->out_offsets[n];
-    vector<int> weights(begin, begin+this->out_degree(n));
-    return weights;
+int* Graph::in_weights_neighbors(VertexId n) const {
+    return this->in_weights+this->in_offsets[n];
 }
 
 #endif // GRAPH_H_

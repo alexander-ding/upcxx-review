@@ -23,82 +23,94 @@ void print_vector(const vector<T> & v) {
     cout << endl;
 }
 
-struct nonNegF{bool operator() (int a) {return (a>=0);}};
+struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
-int bfs_sparse(Graph& g, int* dist, int* counts, int* frontier, int* frontier_next, int frontier_size, int level) {
-    // compute the counts for the newly generated frontier
+VertexId bfs_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, int level) { 
+    // update dist_next to take dist's values
     # pragma omp parallel for
-    for (int i = 0; i < frontier_size; i++)
-        counts[i] = g.out_degree(frontier[i]);
+    for (VertexId i = 0; i < g.num_nodes; i++) {
+        dist_next[i] = dist[i];
+        frontier_next[i] = -1;
+    } 
 
-    int counts_size = sequence::plusScan(counts, counts, frontier_size);
-    
     # pragma omp parallel for
-    for (int i = 0; i < frontier_size; i++) {
-        int u = frontier[i];
-        int count = counts[i];
-        vector<int> neighbors = g.out_neighbors(u);
-        for (int j = 0; j < g.out_degree(u); j++) {
-            int v = neighbors[j];
+    for (VertexId i = 0; i < frontier_size; i++) {
+        
+        VertexId u = frontier[i];
+        VertexId* neighbors = g.out_neighbors(u);
+        for (EdgeId j = 0; j < g.out_degree(u); j++) {
+            VertexId v = neighbors[j];
             if (dist[v] == INT_MAX && compare_and_swap(&dist[v], INT_MAX, level)) {
-                frontier_next[count+j] = v;
-            } else {
-                frontier_next[count+j] = -1;
+                frontier_next[v] = v;
             }
         }
     }
 
-    frontier_size = sequence::filter(frontier_next, frontier, counts_size, nonNegF());
+    frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes, nonNegF());
     return frontier_size;
 }
 
-int bfs_dense(Graph& g, int* dist, int* dist_next, int* counts, int level) {
+VertexId bfs_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* frontier_next, int level) {
     # pragma omp parallel for
-    for (int u = 0; u < g.num_nodes(); u++) {
+    for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
         dist_next[u] = dist[u];
+        frontier_next[u] = false;
         // ignore if distance is set already
         if (dist[u] != INT_MAX) continue;
-        vector<int> neighbors = g.in_neighbors(u);
-        for (int j = 0; j < g.in_degree(u); j++) {
-            int v = neighbors[j];
-            if (dist[v] == (level-1)) {
-                dist_next[u] = level;
-                break;
-            }
+        VertexId* neighbors = g.in_neighbors(u);
+        for (EdgeId j = 0; j < g.in_degree(u); j++) {
+            VertexId v = neighbors[j];
+
+            if (!frontier[v]) continue;
+            
+            dist_next[u] = level;
+            frontier_next[u] = true;
+            break;
         }
     }
 
-    # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++)
-        counts[i] = 0;
-    
-    # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++)
-        if (dist_next[i] != dist[i])
-            counts[i] = 1;
-
-    int frontier_size = sequence::plusScan(counts, counts, g.num_nodes());
+    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
     return frontier_size;
 }
 
-int* bfs(Graph& g, int root) {
-    int* dist = newA(int, g.num_nodes());
-    int* dist_next = newA(int, g.num_nodes());
-    // for each vertex in the frontier, the number of neighbors it has
-    int* counts = newA(int, g.num_nodes());
-    int* frontier = newA(int, g.num_edges());
-    int* frontier_next = newA(int, g.num_edges());
+void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* frontier_dense) {
     # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes(); i++) {
+    for (VertexId i = 0; i < frontier_size; i++) {
+        frontier_dense[frontier_sparse[i]] = true;
+    }
+}
+
+void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontier_sparse) {
+    # pragma omp parallel for
+    for (int i = 0; i < num_nodes; i++) {
+        if (frontier_dense[i]) {
+            frontier_sparse[i] = i;
+        } else {
+            frontier_sparse[i] = -1;
+        }
+    }
+    sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
+}
+
+int* bfs(Graph& g, VertexId root) {
+    int* dist = newA(int, g.num_nodes);
+    int* dist_next = newA(int, g.num_nodes);
+
+    VertexId* frontier_sparse = newA(VertexId, g.num_nodes);
+    VertexId* frontier_sparse_next = newA(VertexId, g.num_nodes);
+    bool* frontier_dense = newA(bool, g.num_nodes);
+    bool* frontier_dense_next = newA(bool, g.num_nodes);
+
+    # pragma omp parallel for
+    for (VertexId i = 0; i < g.num_nodes; i++) {
         dist[i] = INT_MAX; // set INF
-        dist_next[i] = INT_MAX;
     }
 
     bool is_sparse_mode = true;
 
-    frontier[0] = root;
-    int frontier_size = 1;
+    frontier_sparse[0] = root;
+    VertexId frontier_size = 1;
     dist[root] = 0;
 
     int level = 0;
@@ -106,45 +118,31 @@ int* bfs(Graph& g, int root) {
 
     while (frontier_size != 0) {
         level++; 
-        bool should_be_sparse_mode = frontier_size < (g.num_nodes() / threshold_fraction_denom);
+        bool should_be_sparse_mode = frontier_size < (g.num_nodes / threshold_fraction_denom);
+
+        cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
+        auto time_before = chrono::system_clock::now();
+
         if (should_be_sparse_mode) {
             if (!is_sparse_mode) {
-                // clear counts
-                # pragma omp parallel for
-                for (int i = 0; i < g.num_nodes(); i++)
-                    counts[i] = 0;
-                
-                // set counts to 1 where it is frontier
-                // i.e., where dist has changed in last round
-                # pragma omp parallel for
-                for (int i = 0; i < g.num_nodes(); i++)
-                    if (dist_next[i] != dist[i])
-                        counts[i] = 1;
-                
-                // take prefix sum for counts
-                sequence::plusScan(counts, counts, g.num_nodes());
-
-                // set the frontier
-                # pragma omp parallel for
-                for (int i = 0; i < g.num_nodes() - 1; i++)
-                    if (counts[i] != counts[i+1])
-                        frontier[counts[i]] = i;
-
-                // handle the special case of the last member
-                if (counts[g.num_nodes()-1] == frontier_size-1)
-                    frontier[frontier_size-1] = g.num_nodes()-1;
+                dense_to_sparse(frontier_dense, g.num_nodes, frontier_sparse);
             }
-
             is_sparse_mode = true;
-            frontier_size = bfs_sparse(g, dist, counts, frontier, frontier_next, frontier_size, level);
+            frontier_size = bfs_sparse(g, dist, dist_next, frontier_sparse, frontier_sparse_next, frontier_size, level);
         } else {
-            // dense version
+            if (is_sparse_mode) {
+                sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
+            }
             is_sparse_mode = false;
-            frontier_size = bfs_dense(g, dist, dist_next, counts, level);
-            swap(dist_next, dist); 
+            frontier_size = bfs_dense(g, dist, dist_next, frontier_dense, frontier_dense_next, level);
         }
+        swap(dist_next, dist); 
+
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta = (time_after - time_before);
+        cout << "Time: " << delta.count() << endl;
     }
-    free(dist_next); free(frontier); free(frontier_next); free(counts);
+    free(dist_next); free(frontier_dense); free(frontier_dense_next); free(frontier_sparse); free(frontier_sparse_next);
     return dist;
 }
 
@@ -161,7 +159,7 @@ int main(int argc, char *argv[]) {
     float current_time = 0.0;
     srand(time(NULL));
     for (int i = 0; i < num_iters; i++) {
-        int root = rand() % g.num_nodes();
+        VertexId root = rand() % g.num_nodes;
         auto time_before = chrono::system_clock::now();
         int* scores = bfs(g, root);
         auto time_after = chrono::system_clock::now();
@@ -170,7 +168,5 @@ int main(int argc, char *argv[]) {
     }
     cout << current_time / num_iters << endl;
 
-    /* if (!verify(g, root, scores)) {
-        cerr << "BFS result is not correct" << endl;
-    } */
+    
 }
