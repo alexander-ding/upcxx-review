@@ -120,7 +120,7 @@ int* bfs(Graph& g, VertexId root) {
         level++; 
         bool should_be_sparse_mode = frontier_size < (g.num_nodes / threshold_fraction_denom);
 
-        cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
+        if (DEBUG) cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
         auto time_before = chrono::system_clock::now();
 
         if (should_be_sparse_mode) {
@@ -140,7 +140,7 @@ int* bfs(Graph& g, VertexId root) {
 
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta = (time_after - time_before);
-        cout << "Time: " << delta.count() << endl;
+        if (DEBUG) cout << "Time: " << delta.count() << endl;
     }
     free(dist_next); free(frontier_dense); free(frontier_dense_next); free(frontier_sparse); free(frontier_sparse_next);
     return dist;

@@ -38,6 +38,10 @@ static int __ii =  mallopt(M_MMAP_MAX,0);
 static int __jj =  mallopt(M_TRIM_THRESHOLD,-1);
 #endif
 
+#include <cstring>
+const char* CODE_MODE = std::getenv("CODE_MODE");
+const bool DEBUG = CODE_MODE != nullptr && strcmp(CODE_MODE, "DEBUG") == 0;
+
 #define newA(__E,__n) (__E*) malloc((__n)*sizeof(__E))
 
 template <class T>

@@ -133,8 +133,7 @@ int* bellman_ford(Graph& g, int root) {
     while (frontier_size != 0 && level < g.num_nodes) {
         level++; 
         bool should_be_sparse_mode = frontier_size < (g.num_nodes / threshold_fraction_denom);
-
-        cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
+        if (DEBUG) cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
         auto time_before = chrono::system_clock::now();
 
         if (should_be_sparse_mode) {
@@ -154,7 +153,7 @@ int* bellman_ford(Graph& g, int root) {
 
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta = (time_after - time_before);
-        cout << "Time: " << delta.count() << endl;
+        if (DEBUG) cout << "Time: " << delta.count() << endl;
     }
 
     free(dist_next); free(frontier_dense); free(frontier_dense_next); free(frontier_sparse); free(frontier_sparse_next);
@@ -225,7 +224,6 @@ int main(int argc, char *argv[]) {
     const int num_iters = atoi(argv[2]);
     
     Graph g(argv[1]);
-
     float current_time = 0.0;
     srand(time(NULL));
     for (int i = 0; i < num_iters; i++) {

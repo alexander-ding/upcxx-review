@@ -56,7 +56,7 @@ ALL_TESTS = {
 
 def run_mp(name, num_nodes):
     mp_path = (CODE_PATH / "openmp" / name).absolute()
-    command = "OMP_NUM_THREADS={} bash -c '{}'".format(num_nodes, mp_path)
+    command = "OMP_NUM_THREADS={} CODE_MODE=PRODUCTION bash -c '{}'".format(num_nodes, mp_path)
     print(command)
     output = subprocess.check_output(command, shell=True)
     result = float(output.decode("utf-8")[:-1].split("\n")[-1])

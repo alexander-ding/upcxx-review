@@ -1,9 +1,9 @@
-import os
-import sys
-import subprocess
-import json
 import argparse
-
+import json
+import os
+import subprocess
+import sys
+from collections import defaultdict
 from configparser import ConfigParser
 from pathlib import Path
 
@@ -70,7 +70,7 @@ def get_array_sizes():
 
 def run_mp(name, num_nodes):
     mp_path = (CODE_PATH / "openmp" / name).absolute()
-    command = "OMP_NUM_THREADS={} bash -c '{}'".format(num_nodes, mp_path)
+    command = "OMP_NUM_THREADS={} CODE_MODE=PRODUCTION bash -c '{}'".format(num_nodes, mp_path)
     if name == "hello":
         os.system(command)
         return
@@ -231,7 +231,6 @@ def cc_upcxx(num_nodes):
             result.append({'error':True})
     return result
 
-from collections import defaultdict
 all_results = defaultdict(dict)
 
 def run_task(name, mp, upcxx, num_nodes):
