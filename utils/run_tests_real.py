@@ -17,7 +17,7 @@ def pagerank(p, num_nodes, kind):
     print("\nGraph: {}".format(p))
     name = 'pagerank {} {}'.format(p, NUM_ITERS)
     run = run_mp if kind == 'mp' else run_upcxx
-    time = run(name, num_nodes)[0]
+    time = run(name, num_nodes)
     return time
 
 def bfs(p, num_nodes, kind):
@@ -25,7 +25,7 @@ def bfs(p, num_nodes, kind):
     
     name = 'bfs {} {}'.format(p, NUM_ITERS)
     run = run_mp if kind == 'mp' else run_upcxx
-    time = run(name, num_nodes)[0]
+    time = run(name, num_nodes)
     return time
 
 def bf(p, num_nodes, kind):
@@ -33,7 +33,7 @@ def bf(p, num_nodes, kind):
 
     name = 'bellman_ford {} {}'.format(p, NUM_ITERS)
     run = run_mp if kind == 'mp' else run_upcxx
-    time = run(name, num_nodes)[0]
+    time = run(name, num_nodes)
         
     return time
 
@@ -42,7 +42,7 @@ def cc(p, num_nodes, kind):
     
     name = 'connected_components {} {}'.format(p, NUM_ITERS)
     run = run_mp if kind == 'mp' else run_upcxx
-    time = run(name, num_nodes)[0]
+    time = run(name, num_nodes)
 
     return time
 
@@ -59,7 +59,7 @@ def run_mp(name, num_nodes):
     command = "OMP_NUM_THREADS={} bash -c '{}'".format(num_nodes, mp_path)
     print(command)
     output = subprocess.check_output(command, shell=True)
-    result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
+    result = float(output.decode("utf-8")[:-1].split("\n")[-1])
     return result
 
 def run_upcxx(name, num_nodes):
@@ -67,7 +67,7 @@ def run_upcxx(name, num_nodes):
     command = "{}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
     print(command)
     output = subprocess.check_output(command, shell=True)
-    result = [float(f) for f in output.decode("utf-8")[:-1].split("\n")]
+    result = float(output.decode("utf-8")[:-1].split("\n"))
         
     return result
 
