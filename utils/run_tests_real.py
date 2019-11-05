@@ -1,13 +1,13 @@
 import argparse
-import numpy as np
-import subprocess
 import json
-
-from GraphParser import mkdir_if_necessary
-from configparser import ConfigParser
+import subprocess
 from collections import defaultdict
+from configparser import ConfigParser
 from pathlib import Path
 
+import numpy as np
+
+from GraphParser import mkdir_if_necessary
 
 GRAPHS_UNWEIGHTED = []
 GRAPHS_WEIGHTED = []
@@ -115,7 +115,7 @@ def main(args):
 
     results = {}
     tests = ALL_TESTS.keys() if args.test == 'all' else [args.test]
-    kinds = ['upcxx', 'mp'] if args.test == 'all' else [args.kind]
+    kinds = ['upcxx', 'mp'] if args.kind == 'all' else [args.kind]
     for test in tests:
         results[test] = {}
         if test != 'bf':
