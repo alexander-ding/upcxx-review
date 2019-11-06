@@ -26,7 +26,8 @@ PROGRAMS = \
   hello \
   pagerank \
   random_access \
-  random_access_future
+  random_access_future \
+  graph_scan
 
 all: $(PROGRAMS)
 

@@ -18,8 +18,6 @@ class Graph {
 
     dist_object<EdgeId*> in_offsets;
     dist_object<VertexId*> in_edges;
-    private: 
-        vector<int> _neighbors(vector<int> &offsets, vector<int> &edges, int n);
         
     public:
         Graph(char* path);
@@ -33,11 +31,12 @@ class Graph {
         EdgeId num_out_edges_local; 
         EdgeId num_in_edges_local;
 
-        EdgeId in_degree(const int n);
-        EdgeId out_degree(const int n);
+        int vertex_rank(const VertexId n);
+        EdgeId in_degree(const VertexId n);
+        EdgeId out_degree(const VertexId n);
 
-        VertexId* in_neighbors(const int n);
-        VertexId* out_neighbors(const int n);
+        VertexId* in_neighbors(const VertexId n);
+        VertexId* out_neighbors(const VertexId n);
 };
 
 Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 0)), out_offsets(newA(EdgeId, 0)), out_edges(newA(VertexId, 0)) {
@@ -112,56 +111,36 @@ Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 
             (*in_edges)[i-offset_start] = edge;
         }
     }
-
 }
 
-int Graph::in_degree(const int n)  {
+int Graph::vertex_rank(const VertexId n) {
+    return int(n / (num_nodes / rank_n()));
+}
+
+EdgeId Graph::in_degree(const VertexId n)  {
     assert((n >= rank_start) && (n < rank_end));
-    if ((n >= rank_start) && (n < rank_end)) {
-        if ((n - rank_start) == num_nodes_local) {
-            return num_in_edges_local - (*in_offsets)[num_nodes_local-1];
-        }
-        return (*in_offsets)[(n-rank_start)+1] - (*in_offsets)[n-rank_start];
+    if ((n - rank_start) == (num_nodes_local-1)) {
+        return num_in_edges_local - (*in_offsets)[num_nodes_local-1];
     }
+    return (*in_offsets)[(n-rank_start)+1] - (*in_offsets)[n-rank_start];
 }
 
-int Graph::out_degree(const int n)  {
+EdgeId Graph::out_degree(const int n)  {
     assert((n >= rank_start) && (n < rank_end));
-    if ((n >= rank_start) && (n < rank_end)) {
-        if ((n - rank_start) == num_nodes_local) {
-            return num_out_edges_local - (*out_offsets)[num_nodes_local-1];
-        }
-        return (*out_offsets)[(n-rank_start)+1] - (*out_offsets)[n-rank_start];
+    if ((n - rank_start) == (num_nodes_local-1)) {
+        return num_out_edges_local - (*out_offsets)[num_nodes_local-1];
     }
+    return (*out_offsets)[(n-rank_start)+1] - (*out_offsets)[n-rank_start];
 }
 
-vector<int> Graph::in_neighbors(const int n) {
-    if ((n >= rank_start) && (n < rank_end)) {
-        return _neighbors(*in_offsets, *in_edges, n-rank_start);
-    } else {
-        int rank =  int(n / (num_nodes / rank_n()));
-        auto offsets = in_offsets.fetch(rank).wait();
-        auto edges = in_edges.fetch(rank).wait();
-        return _neighbors(offsets, edges, n-rank*int(num_nodes / rank_n()));
-    }
+VertexId* Graph::in_neighbors(const int n) {
+    assert((n >= rank_start) && (n < rank_end));
+    return (*in_edges) + (*in_offsets)[n-rank_start];
 }
 
-vector<int> Graph::out_neighbors(const int n) {
-    if ((n >= rank_start) && (n < rank_end)) {
-        return _neighbors(*out_offsets, *out_edges, n-rank_start);
-    } else {
-        int rank =  int(n / (num_nodes / rank_n()));
-        auto offsets = out_offsets.fetch(rank).wait();
-        auto edges = out_edges.fetch(rank).wait();
-        return _neighbors(offsets, edges, n-rank*int(num_nodes / rank_n()));
-    }
-}
-
-vector<int> Graph::_neighbors(vector<int> &offsets, vector<int> &edges, int n) {
-    auto begin = edges.begin() + offsets[n];
-    auto end = (n == (offsets.size()-1)) ? (edges.end()) : (edges.begin() + offsets[n+1]);
-    vector<int> to_return(begin, end);
-    return to_return;
+VertexId* Graph::out_neighbors(const int n) {
+    assert((n >= rank_start) && (n < rank_end));
+    return (*out_edges) + (*in_offsets)[n-rank_start];
 }
 
 #endif

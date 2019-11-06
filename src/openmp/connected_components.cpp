@@ -50,11 +50,15 @@ VertexId cc_sparse(Graph& g, VertexId* labels, VertexId* labels_next, VertexId* 
 }
 
 int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, bool* frontier_next, int level) {
+    auto time_before = chrono::system_clock::now();
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
         frontier_next[i] = false;
         labels_next[i] = labels[i];
     }
+    auto time_after_1 = chrono::system_clock::now();
+    chrono::duration<double> delta = time_after_1 - time_before; 
+    cout << "Time for setting labels_next " << delta.count() << endl;
 
     # pragma omp parallel for
     for (VertexId u = 0; u < g.num_nodes; u++) {
@@ -78,8 +82,15 @@ int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, 
             }
         }
     }
+    auto time_after_2 = chrono::system_clock::now();
+    delta = time_after_2 - time_after_1; 
+    cout << "Time for looping " << delta.count() << endl;
 
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
+
+    auto time_after_3 = chrono::system_clock::now();
+    delta = time_after_3 - time_after_2; 
+    cout << "Time for summing flags " << delta.count() << endl;
     return frontier_size;
 }
 

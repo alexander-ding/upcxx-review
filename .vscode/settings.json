@@ -81,7 +81,8 @@
         "unordered_set": "cpp",
         "variant": "cpp",
         "memory_resource": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "rMatGraph.C": "cpp"
     },
     "python.pythonPath": "/anaconda3/bin/python"
 }
