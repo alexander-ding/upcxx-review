@@ -5,6 +5,7 @@
 #include <climits>
 #include <stdlib.h> 
 #include <time.h>
+#include "utils.hpp"
 
 using namespace upcxx;
 template <typename T>
@@ -17,12 +18,12 @@ void print_vector(const vector<T> & v) {
 }
 
 
-vector<int> bfs(Graph &g, int root) {
+vector<int> bfs(Graph &g, VertexId root) {
     // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
 
     dist_object<global_ptr<int>> dist(new_array<int>(g.num_nodes));
     auto dist_local = dist->local();
-    for (int i = 0; i < g.num_nodes; i++) dist_local[i] = INT_MAX;
+    for (VertexId i = 0; i < g.num_nodes; i++) dist_local[i] = INT_MAX;
     dist_local[root] = 0; // initialize everyone to INF except root
     barrier();
 
@@ -33,7 +34,9 @@ vector<int> bfs(Graph &g, int root) {
         for (int n = g.rank_start; n < g.rank_end; n++) {
             // ignore if distance is already defined 
             if (dist_local[n] != INT_MAX) continue;
-            for (int v : g.in_neighbors(n)) {
+            VertexId* neighbors = g.in_neighbors(n).local();
+            for (EdgeId i = 0; i < g.in_degree(n); i++) {
+                VertexId v = neighbors[i];
                 if (dist_local[v] < (dist_local[n]-1)) {
                     dist_local[n] = dist_local[v] + 1;
                     new_added = true;
@@ -63,25 +66,25 @@ vector<int> bfs(Graph &g, int root) {
     return dist_return;
 }
 
-bool verify(Graph& g, int root, vector<int> dist_in) {
+bool verify(Graph& g, VertexId root, vector<int> dist_in) {
     vector<int> dist(g.num_nodes);
 
     if (dist.size() != dist_in.size())
         return false;
 
-    for (int i = 0; i < g.num_nodes; i++)
+    for (VertexId i = 0; i < g.num_nodes; i++)
         dist[i] = INT_MAX; // set INF
 
     dist[root] = 0;
     int level = 1;
-    vector<int> frontier, next_frontier;
+    vector<VertexId> frontier, next_frontier;
     frontier.push_back(root);
     while (frontier.size() != 0) {
-        for (int i = 0; i < frontier.size(); i++) {
-            int u = frontier[i];
-            vector<int> neighbors = g.out_neighbors(u);
-            for (int j = 0; j < g.out_degree(u); j++) {
-                int v = neighbors[j];
+        for (VertexId i = 0; i < frontier.size(); i++) {
+            VertexId u = frontier[i];
+            VertexId* neighbors = g.out_neighbors(u).local();
+            for (EdgeId j = 0; j < g.out_degree(u); j++) {
+                VertexId v = neighbors[j];
                 if (dist[v] == INT_MAX) {
                     next_frontier.push_back(v);
                     dist[v] = level;
@@ -93,7 +96,7 @@ bool verify(Graph& g, int root, vector<int> dist_in) {
         level += 1; 
     }
 
-    for (int i = 0; i < dist.size(); i++) {
+    for (VertexId i = 0; i < dist.size(); i++) {
         if (dist[i] != dist_in[i]) {
             return false;
         }
@@ -116,20 +119,21 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
-        dist_object<int> root(rand() % g.num_nodes);
-        int root_local = root.fetch(0).wait();
+        dist_object<VertexId> root(rand() % g.num_nodes);
+        VertexId root_local = root.fetch(0).wait();
         auto time_before = std::chrono::system_clock::now();
         vector<int> dist = bfs(g, root_local);
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
+        // if (rank_me()==0) print_vector(dist);
     }
 
     if (rank_me() == 0) {
         std::cout << current_time / num_iters << std::endl;
-        /* if (!verify(g, root, dist)) {
+        /*if (!verify(g, root, dist)) {
             std::cerr << "Verification not correct" << endl;
-        } */
+        }*/
     }
     barrier();
     finalize();

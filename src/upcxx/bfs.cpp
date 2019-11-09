@@ -5,47 +5,59 @@
 #include <climits>
 #include <stdlib.h> 
 #include <time.h>
+#include "sequence.hpp"
 
 using namespace upcxx;
-template <typename T>
-void print_vector(const vector<T> & v) {
-    cout << endl;
-    for (auto i = v.begin(); i != v.end(); ++i) {
-        cout << *i << " ";
+
+struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
+
+void sync_round_dense(Graph& g, dist_object<global_ptr<int>>& dist_next, dist_object<global_ptr<bool>>& frontier_next) {  
+    for (int i = 0; i < rank_n(); i++) {
+        broadcast(dist_next->local()+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
+        broadcast(frontier_next->local()+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
     }
-    cout << endl;
+    barrier();
 }
 
+VertexId bfs_dense(Graph& g, dist_object<global_ptr<int>>& dist_dist, dist_object<global_ptr<int>>& dist_next_dist, dist_object<global_ptr<bool>>& frontier_dist, dist_object<global_ptr<bool>>& frontier_next_dist, int level) {
+    int* dist = dist_dist->local();
+    int* dist_next = dist_next_dist->local();
+    bool* frontier = frontier_dist->local();
+    bool* frontier_next = frontier_next_dist->local();
 
-void bfs_dense(Graph& g, dist_object<global_ptr<int>>& dist, dist_object<global_ptr<bool>>& frontier, dist_object<global_ptr<bool>>& next_frontier, int level) {
-    auto dist_local = dist->local();
-    auto frontier_local = frontier->local();
-    auto next_frontier_local = next_frontier->local();
-    global_ptr<bool> root_next_frontier = next_frontier.fetch(0).wait();
-    global_ptr<int> root_dist = dist.fetch(0).wait();
+    auto time_1 = std::chrono::system_clock::now();
+    
+    for (VertexId u = g.rank_start; u < g.rank_end; u++) {
+        // update next round of dist
+        dist_next[u] = dist[u];
+        cout << dist_next[u] << endl;
+        frontier_next[u] = false;
 
-    future<> fut_all = make_future();
-    for (int n = g.rank_start; n < g.rank_end; n++) {
-        // ignore if distance is already defined 
-        if (dist_local[n] < level) continue;
-        for (int v : g.in_neighbors(n)) {
-            if (dist_local[v] == (level-1)) {
-                fut_all = when_all(fut_all, rput(level, root_dist+n));
-                fut_all = when_all(fut_all, rput(true, root_next_frontier+n));
-                break;
-            }
+        // ignore if distance is set already
+        if (dist_next[u] != INT_MAX) continue;
+        VertexId* neighbors = g.in_neighbors(u).local(); 
+
+        for (EdgeId j = 0; j < g.in_degree(u); j++) {
+            VertexId v = neighbors[j];
+
+            if (!frontier[v]) continue;
+
+            dist_next[u] = level;
+            frontier_next[u] = true;
         }
     }
-
     barrier();
-
-    fut_all.wait();
-    barrier();
-    upcxx::broadcast(next_frontier_local, g.num_nodes, 0).wait();
-    upcxx::broadcast(dist_local, g.num_nodes, 0).wait();
-    barrier();
+    auto time_2 = std::chrono::system_clock::now();
+    std::chrono::duration<double> delta_time = time_2 - time_1;
+    if (rank_me()==0) cout << "Compute time " << delta_time.count() << endl;
+    sync_round_dense(g, dist_next_dist, frontier_next_dist);
+    auto time_3 = std::chrono::system_clock::now();
+    delta_time = time_3 - time_2;
+    if (rank_me()==0) cout << "Sync time " << delta_time.count() << endl;
+    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
+    return frontier_size;
 }
-
+/*
 void bfs_sparse(Graph& g, dist_object<global_ptr<int>>& dist, dist_object<global_ptr<bool>>& frontier, dist_object<global_ptr<bool>>& next_frontier, int level) {
     auto dist_local = dist->local();
     auto frontier_local = frontier->local();
@@ -73,53 +85,107 @@ void bfs_sparse(Graph& g, dist_object<global_ptr<int>>& dist, dist_object<global
     
     
 }
-
-vector<int> bfs(Graph &g, int root) {
-    // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
-
-    dist_object<global_ptr<int>> dist(new_array<int>(g.num_nodes));
-    auto dist_local = dist->local();
-    for (int i = 0; i < g.num_nodes; i++) dist_local[i] = INT_MAX;
-    dist_local[root] = 0; // initialize everyone to INF except root
-
-    // is the vertex a frontier
-    dist_object<global_ptr<bool>> frontier(new_array<bool>(g.num_nodes));
-    auto frontier_local = frontier->local();
-    for (int i = 0; i < g.num_nodes; i++) frontier_local[i] = false;
-    frontier_local[root] = true;
-    int frontier_size = 1;
-
-    dist_object<global_ptr<bool>> next_frontier(new_array<bool>(g.num_nodes));
-    auto next_frontier_local = next_frontier->local();
-    for (int i = 0; i < g.num_nodes; i++) next_frontier_local[i] = false;
-    barrier();
-
-    int level = 1;
-    while (frontier_size != 0) {
-        if (frontier_size > (g.num_nodes / 20)) {
-            bfs_dense(g, dist, frontier, next_frontier, level);
-        } else {
-            bfs_sparse(g, dist, frontier, next_frontier, level);
-        }
-        // set frontier_size
-        // clear next_frontiers
-        frontier_size = 0;
-        for (int n = 0; n < g.num_nodes; n++) {
-            frontier_local[n] = next_frontier_local[n];
-            if (next_frontier_local[n]) {
-                frontier_size += 1;
-                next_frontier_local[n] = false;
-            }
-        }
-        level += 1;
+*/
+void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* frontier_dense) {
+    for (VertexId i = 0; i < frontier_size; i++) {
+        frontier_dense[frontier_sparse[i]] = true;
     }
-    
-    // ready the return
-    vector<int> dist_return;
-    dist_return.assign(dist_local, dist_local+g.num_nodes);
-    return dist_return;
 }
 
+void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontier_sparse) {
+    for (int i = 0; i < num_nodes; i++) {
+        if (frontier_dense[i]) {
+            frontier_sparse[i] = i;
+        } else {
+            frontier_sparse[i] = -1;
+        }
+    }
+    sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
+}
+
+int* bfs(Graph &g, VertexId root) {
+    // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
+    dist_object<global_ptr<int>> dist_dist(new_array<int>( g.num_nodes)); int* dist = dist_dist->local();
+    dist_object<global_ptr<int>> dist_next_dist(new_array<int>(g.num_nodes)); int* dist_next = dist_next_dist->local();
+    
+    dist_object<global_ptr<VertexId>> frontier_sparse_dist(new_array<VertexId>(g.num_nodes)); VertexId* frontier_sparse = frontier_sparse_dist->local();
+    dist_object<global_ptr<VertexId>> frontier_sparse_next_dist(new_array<VertexId>(g.num_nodes)); VertexId* frontier_sparse_next = frontier_sparse_next_dist->local();
+    
+    dist_object<global_ptr<bool>> frontier_dense_dist(new_array<bool>(g.num_nodes)); bool* frontier_dense = frontier_dense_dist->local();
+    dist_object<global_ptr<bool>> frontier_dense_next_dist(new_array<bool>(g.num_nodes)); bool* frontier_dense_next = frontier_dense_next_dist->local();
+
+    for (int i = 0; i < g.num_nodes; i++) {
+        dist[i] = INT_MAX;
+        dist_next[i] = INT_MAX;
+    }
+
+    bool is_sparse_mode = true;
+
+    frontier_sparse[0] = root;
+    VertexId frontier_size = 1;
+    dist[root] = 0; // initialize everyone to INF except root
+    dist_next[root] = 0;
+
+    int level = 0;
+    const int threshold_fraction_denom = 20;
+
+    while (frontier_size != 0) {
+        level++; 
+        bool should_be_sparse_mode = false; // frontier_size < (g.num_nodes / threshold_fraction_denom);
+
+        if (DEBUG && rank_me() == 0) cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
+        auto time_before = chrono::system_clock::now();
+
+        if (should_be_sparse_mode) {
+            if (!is_sparse_mode) {
+                dense_to_sparse(frontier_dense, g.num_nodes, frontier_sparse);
+            }
+            is_sparse_mode = true;
+            // TODO: WORRY ABOUT THIS LATER
+            // frontier_size = bfs_sparse(g, dist, dist_next, )
+        } else {
+            if (is_sparse_mode) {
+                sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
+            }
+            is_sparse_mode = false;
+            frontier_size = bfs_dense(g, dist_dist, dist_next_dist, frontier_dense_dist, frontier_dense_next_dist, level);
+            swap(*frontier_dense_next, *frontier_dense);
+        }
+        if (rank_me() == 0) {
+            for (int i = 0; i < g.num_nodes; i++) {
+                cout << dist_next[i] << endl;
+            }
+            cout << endl;
+            for (int i = 0; i < g.num_nodes; i++) {
+                cout << dist[i] << endl;
+            }
+            cout << endl;
+        }
+        swap(*dist_next, *dist);
+        if (rank_me() == 0) {
+            cout << "after swap" << endl;
+            for (int i = 0; i < g.num_nodes; i++) {
+                cout << dist_next[i] << endl;
+            }
+            cout << endl;
+            for (int i = 0; i < g.num_nodes; i++) {
+                cout << dist[i] << endl;
+            }
+            cout << endl;
+        }
+
+        barrier();
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta = (time_after - time_before);
+        if (DEBUG && rank_me() == 0) cout << "Time: " << delta.count() << endl;
+    }
+
+    // DELETE pointers
+
+    return dist; 
+}
+
+/*
 bool verify(Graph& g, int root, vector<int> dist_in) {
     vector<int> dist(g.num_nodes);
 
@@ -156,7 +222,7 @@ bool verify(Graph& g, int root, vector<int> dist_in) {
         }
     }
     return true;
-}
+}*/
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -174,10 +240,13 @@ int main(int argc, char *argv[]) {
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
         dist_object<int> root(rand() % g.num_nodes);
-        int root_local = root.fetch(0).wait();
+        int root_local = 0; //root.fetch(0).wait();
         auto time_before = std::chrono::system_clock::now();
-        vector<int> dist = bfs(g, root_local);
-        // print_vector(dist);
+        int* dist = bfs(g, root_local);
+        if (rank_me() == 0) {
+            for (int i = 0; i < g.num_nodes; i++)
+                cout << dist[i] << endl;
+        }
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();

@@ -40,7 +40,7 @@ VertexId bfs_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, Ver
         VertexId* neighbors = g.out_neighbors(u);
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            if (dist[v] == INT_MAX && compare_and_swap(&dist[v], INT_MAX, level)) {
+            if (compare_and_swap(&dist_next[v], INT_MAX, level)) {
                 frontier_next[v] = v;
             }
         }
@@ -57,7 +57,7 @@ VertexId bfs_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* fr
         dist_next[u] = dist[u];
         frontier_next[u] = false;
         // ignore if distance is set already
-        if (dist[u] != INT_MAX) continue;
+        if (dist_next[u] != INT_MAX) continue;
         VertexId* neighbors = g.in_neighbors(u);
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
@@ -66,11 +66,11 @@ VertexId bfs_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* fr
             
             dist_next[u] = level;
             frontier_next[u] = true;
-            break;
         }
     }
 
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
+    
     return frontier_size;
 }
 
@@ -125,7 +125,7 @@ int* bfs(Graph& g, VertexId root) {
 
         if (should_be_sparse_mode) {
             if (!is_sparse_mode) {
-                dense_to_sparse(frontier_dense, g.num_nodes, frontier_sparse);
+                dense_to_sparse(frontier_dense_next, g.num_nodes, frontier_sparse);
             }
             is_sparse_mode = true;
             frontier_size = bfs_sparse(g, dist, dist_next, frontier_sparse, frontier_sparse_next, frontier_size, level);
@@ -135,6 +135,7 @@ int* bfs(Graph& g, VertexId root) {
             }
             is_sparse_mode = false;
             frontier_size = bfs_dense(g, dist, dist_next, frontier_dense, frontier_dense_next, level);
+            swap(frontier_dense, frontier_dense_next);
         }
         swap(dist_next, dist); 
 

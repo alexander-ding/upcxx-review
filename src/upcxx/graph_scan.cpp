@@ -7,7 +7,7 @@ using namespace upcxx;
 
 void scan_in(Graph& g) {
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
-        VertexId* neighbors = g.in_neighbors(u);
+        VertexId* neighbors = g.in_neighbors(u).local();
         cout << u << " has in neighbors" << endl;
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
@@ -18,7 +18,7 @@ void scan_in(Graph& g) {
 
 void scan_out(Graph& g) {
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
-        VertexId* neighbors = g.out_neighbors(u);
+        VertexId* neighbors = g.out_neighbors(u).local();
         cout << u << " has out neighbors" << endl;
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
@@ -36,7 +36,6 @@ int main(int argc, char *argv[]) {
     init();
     Graph g = Graph(argv[1]);
     barrier();
-
     auto time_before = chrono::system_clock::now();
     scan_in(g);
     barrier();

@@ -38,6 +38,10 @@ class Graph {
 };
 
 Graph::Graph(char* path) {
+    if (!file_exists(path)) {
+        cout << "Graph file does not exist" << endl;
+        abort();
+    }
     ifstream fin(path);
     VertexId n;
     EdgeId m;

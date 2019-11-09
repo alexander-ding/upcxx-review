@@ -44,6 +44,13 @@ const bool DEBUG = CODE_MODE != nullptr && strcmp(CODE_MODE, "DEBUG") == 0;
 
 #define newA(__E,__n) (__E*) malloc((__n)*sizeof(__E))
 
+#include <sys/stat.h>
+
+inline bool file_exists(const char* name) {
+  struct stat buffer;   
+  return (stat (name, &buffer) == 0); 
+}
+
 template <class T>
 bool compare_and_swap(T *ptr, T oldval, T newval) {
   return __sync_bool_compare_and_swap(ptr, oldval, newval);
