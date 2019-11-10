@@ -108,6 +108,7 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
         frontier_next[u] = false;
     }
 
+    cout << g.rank_start << " " << g.rank_end << endl;
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
         // ignore if distance is set already
         if (dist_next[u] != INT_MAX) continue;
@@ -119,6 +120,7 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
             if (!frontier[v]) continue;
 
             if (!frontier_next[u]) {
+                cout << "Setting " << u << endl;
                 dist_next[u] = level; 
                 frontier_next[u] = true;
             }
