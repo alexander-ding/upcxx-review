@@ -217,6 +217,8 @@ int* bfs(Graph &g, VertexId root) {
         } else {
             if (is_sparse_mode) {
                 sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
+                frontier_size = sequence::sumFlagsSerial(frontier_dense, g.num_nodes);
+                if (rank_me() == 0) cout << frontier_size << endl;
             }
             is_sparse_mode = false;
             frontier_size = bfs_dense(g, dist_dist, dist_next_dist, frontier_dense_dist, frontier_dense_next_dist, level);
