@@ -50,7 +50,7 @@ VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_ne
     sync_round_sparse(g, dist_next, frontier_next);
     auto time_3 = chrono::system_clock::now();
     delta = time_3 - time_2;
-    if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
+    if (DEBUG && rank_me() == 0) cout << "Communication: " << delta.count() << endl;
     frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes, nonNegF());
     return frontier_size; 
 }
@@ -64,6 +64,7 @@ void sync_round_dense(Graph& g, int* dist_next, bool* frontier_next) {
 }
 
 VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
+    auto time_1 = chrono::system_clock::now();
     int* dist = dist_dist.local();
     int* dist_next = dist_next_dist.local();
     bool* frontier = frontier_dist.local();
@@ -93,7 +94,13 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
 
     }
     barrier();
+    auto time_2 = chrono::system_clock::now();
+    chrono::duration<double> delta = (time_2 - time_1);
+    if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
     sync_round_dense(g, dist_next, frontier_next);
+    auto time_3 = chrono::system_clock::now();
+    delta = time_3 - time_2;
+    if (DEBUG && rank_me() == 0) cout << "Communication: " << delta.count() << endl;
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
 
     return frontier_size;
