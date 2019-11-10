@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
-        int root = rand() % g.num_nodes;
+        int root = 0; // rand() % g.num_nodes;
         root = broadcast(root, 0).wait();
         auto time_before = std::chrono::system_clock::now();
         int* dist = bfs(g, root);
