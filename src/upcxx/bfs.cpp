@@ -69,15 +69,8 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     promise<> p;
     int* dist_next = dist_next_dist.local();
     bool* frontier_next = frontier_next_dist.local();
-    if (rank_me() == 0) {
-        for (int i = 0; i < g.num_nodes; i++) {
-            if (frontier_next[i]) cout << i << endl;
-        }
-    }
     global_ptr<int> dist_next_root = broadcast(dist_next_dist, 0).wait();
     global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
-    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
-    cout << rank_me() << frontier_size << endl;
     rput(dist_next+g.rank_start, dist_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
     rput(frontier_next+g.rank_start, frontier_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
     
@@ -86,7 +79,6 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     barrier();
 
     frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
-    cout << rank_me() << frontier_size << endl;
 
     promise<> p2;
     broadcast(dist_next, g.num_nodes, 0, world(), operation_cx::as_promise(p2));
@@ -102,31 +94,23 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     bool* frontier = frontier_dist.local();
     bool* frontier_next = frontier_next_dist.local();
 
-    if (rank_me() == 0) cout << sequence::sumFlagsSerial(frontier_dist.local(), g.num_nodes) << endl;
-
     for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
         dist_next[u] = dist[u];
         frontier_next[u] = false;
     }
 
-    cout << g.rank_start << " " << g.rank_end << endl;
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
         // ignore if distance is set already
         if (dist_next[u] != INT_MAX) continue;
-        cout << "Checking out " << u << endl;
-        cout << g.in_degree(u) << endl;
         VertexId* neighbors = g.in_neighbors(u).local(); 
 
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
-            cout << "Neighbor " << v << endl;
 
             if (!frontier[v]) continue;
-            cout << "Checking out " << v << endl;
 
             if (!frontier_next[u]) {
-                cout << "Setting " << u << endl;
                 dist_next[u] = level; 
                 frontier_next[u] = true;
             }
@@ -136,8 +120,6 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     barrier();
     auto time_2 = chrono::system_clock::now();
     chrono::duration<double> delta = (time_2 - time_1);
-    if (rank_me() == 0) cout << sequence::sumFlagsSerial(frontier_next, g.num_nodes) << endl;
-    if (rank_me() == 0) cout << sequence::sumFlagsSerial(frontier_next_dist.local(), g.num_nodes) << endl;
     if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
     sync_round_dense(g, dist_next_dist, frontier_next_dist);
     auto time_3 = chrono::system_clock::now();
@@ -145,12 +127,10 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     if (DEBUG && rank_me() == 0) cout << "Communication: " << delta.count() << endl;
     sync_round_dense_other(g, dist_next, frontier_next);
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
-    if (rank_me() == 0) cout << frontier_size << endl;
     auto time_4 = chrono::system_clock::now();
     delta = time_4 - time_3;
     if (DEBUG && rank_me() == 0) cout << "Communication (should be faster) " << delta.count() << endl;
     frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
-    if (rank_me() == 0) cout << frontier_size << endl;
 
     return frontier_size;
 }
@@ -213,8 +193,6 @@ int* bfs(Graph &g, VertexId root) {
         } else {
             if (is_sparse_mode) {
                 sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
-                frontier_size = sequence::sumFlagsSerial(frontier_dense, g.num_nodes);
-                if (rank_me() == 0) cout << frontier_size << endl;
             }
             is_sparse_mode = false;
             frontier_size = bfs_dense(g, dist_dist, dist_next_dist, frontier_dense_dist, frontier_dense_next_dist, level);
@@ -229,7 +207,6 @@ int* bfs(Graph &g, VertexId root) {
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta = (time_after - time_before);
         if (DEBUG && rank_me() == 0) cout << "Time: " << delta.count() << endl;
-        if (rank_me() == 0) cout << "Frontier size " << frontier_size << endl;
     }
 
     delete_array(dist_next_dist); delete_array(frontier_sparse_dist); delete_array(frontier_sparse_next_dist); delete_array(frontier_dense_dist); delete_array(frontier_dense_next_dist);
