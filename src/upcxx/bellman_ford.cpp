@@ -185,10 +185,10 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
-        global_ptr<int> root = new_<int>(rand() % g.num_nodes);
+        int root = rand() % g.num_nodes;
         root = broadcast(root, 0).wait();
         auto time_before = std::chrono::system_clock::now();
-        int* dist = bellman_ford(g, *root.local());
+        int* dist = bellman_ford(g, root);
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
