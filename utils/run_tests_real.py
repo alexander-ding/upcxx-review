@@ -67,7 +67,8 @@ def run_upcxx(name, num_nodes):
     command = "CODE_MODE=PRODUCTION {}/bin/upcxx-run -n {} -shared-heap 4G {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
     print(command)
     output = subprocess.check_output(command, shell=True)
-    result = float(output.decode("utf-8")[:-1].split("\n"))
+    print(output.decode("utf-8")[:-1].split("\n"))
+    result = float(output.decode("utf-8")[:-1].split("\n")[-1])
         
     return result
 
