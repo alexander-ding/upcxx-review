@@ -14,14 +14,14 @@ typedef int VertexId;
 typedef int EdgeId;
 
 class Graph {
-    dist_object<global_ptr<EdgeId>> out_offsets_dist;
+    global_ptr<EdgeId> out_offsets_dist;
     EdgeId* out_offsets;
-    dist_object<global_ptr<VertexId>> out_edges_dist; 
+    global_ptr<VertexId> out_edges_dist; 
     VertexId* out_edges;
 
-    dist_object<global_ptr<EdgeId>> in_offsets_dist;
+    global_ptr<EdgeId> in_offsets_dist;
     EdgeId* in_offsets;
-    dist_object<global_ptr<VertexId>> in_edges_dist;
+    global_ptr<VertexId> in_edges_dist;
     VertexId* in_edges;
         
     public:
@@ -54,7 +54,7 @@ class Graph {
         }
 };
 
-Graph::Graph(char *path) : in_offsets_dist(new_array<EdgeId>(0)), in_edges_dist(new_array<VertexId>(0)), out_offsets_dist(new_array<EdgeId>(0)), out_edges_dist(new_array<VertexId>(0)) {
+Graph::Graph(char *path) {
     if (!file_exists(path)) {
         if (rank_me() == 0)
             cout << "Graph file does not exist" << endl;
@@ -74,10 +74,10 @@ Graph::Graph(char *path) : in_offsets_dist(new_array<EdgeId>(0)), in_edges_dist(
 
     num_nodes_local = rank_end-rank_start;
 
-    *out_offsets_dist = new_array<EdgeId>(num_nodes_local);
-    *in_offsets_dist = new_array<EdgeId>(num_nodes_local);
-    out_offsets = out_offsets_dist->local();
-    in_offsets = in_offsets_dist->local();
+    out_offsets_dist = new_array<EdgeId>(num_nodes_local);
+    in_offsets_dist = new_array<EdgeId>(num_nodes_local);
+    out_offsets = out_offsets_dist.local();
+    in_offsets = in_offsets_dist.local();
 
     int offset, edge; 
     int offset_start;
@@ -98,8 +98,8 @@ Graph::Graph(char *path) : in_offsets_dist(new_array<EdgeId>(0)), in_edges_dist(
         offset_end = m;
 
     num_out_edges_local = offset_end - offset_start;
-    *out_edges_dist = new_array<VertexId>(num_out_edges_local);
-    out_edges = out_edges_dist->local();
+    out_edges_dist = new_array<VertexId>(num_out_edges_local);
+    out_edges = out_edges_dist.local();
 
     for (int i = 0; i < m; i++) {
         fin >> edge;
@@ -123,8 +123,8 @@ Graph::Graph(char *path) : in_offsets_dist(new_array<EdgeId>(0)), in_edges_dist(
         offset_end = m;
 
     num_in_edges_local = offset_end - offset_start;
-    *in_edges_dist = new_array<VertexId>(num_in_edges_local);
-    in_edges = in_edges_dist->local();
+    in_edges_dist = new_array<VertexId>(num_in_edges_local);
+    in_edges = in_edges_dist.local();
     for (int i = 0; i < m; i++) {
         fin >> edge;
         if (i >= offset_start && i < offset_end) {
@@ -155,12 +155,12 @@ EdgeId Graph::out_degree(const int n)  {
 
 global_ptr<VertexId> Graph::in_neighbors(const int n) {
     assert((n >= rank_start) && (n < rank_end));
-    return (*in_edges_dist) + in_offsets[n-rank_start];
+    return in_edges_dist + in_offsets[n-rank_start];
 }
 
 global_ptr<VertexId> Graph::out_neighbors(const int n) {
     assert((n >= rank_start) && (n < rank_end));
-    return (*out_edges_dist) + out_offsets[n-rank_start];
+    return out_edges_dist + out_offsets[n-rank_start];
 }
 
 #endif

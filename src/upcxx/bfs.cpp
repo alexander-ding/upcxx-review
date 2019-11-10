@@ -11,6 +11,43 @@ using namespace upcxx;
 
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
+void sync_round_sparse(Graph& g, int* dist_next, int* frontier_next) {
+    reduce_all(dist_next, dist_next, g.num_nodes, op_fast_min).wait();
+    reduce_all(frontier_next, frontier_next, g.num_nodes, op_fast_max).wait();
+    barrier();
+}
+
+VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<int> frontier_dist, global_ptr<int> frontier_next_dist, VertexId frontier_size, int level) {
+    int* dist = dist_dist.local();
+    int* dist_next = dist_next_dist.local();
+    int* frontier = frontier_dist.local();
+    int* frontier_next = frontier_next_dist.local();
+
+    for (VertexId i = 0; i < g.num_nodes; i++) {
+        dist_next[i] = dist[i];
+        frontier_next[i] = -1;
+    }
+
+    future<> fut = make_future();
+
+    for (VertexId i = 0; i < frontier_size; i++) {
+        VertexId u = frontier[i];
+        if (!(g.rank_start <= u && u < g.rank_end)) continue;
+        VertexId* neighbors = g.out_neighbors(u).local();
+        for (EdgeId j = 0; j < g.out_degree(u); j++) {
+            VertexId v = neighbors[j];
+            if (dist_next[v] == INT_MAX) {
+                dist_next[v] = level;
+                frontier_next[v] = v;
+            }
+        }
+    }
+    barrier();
+    sync_round_sparse(g, dist_next, frontier_next);
+    frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes, nonNegF());
+    return frontier_size; 
+}
+
 void sync_round_dense(Graph& g, int* dist_next, bool* frontier_next) {  
     for (int i = 0; i < rank_n(); i++) {
         broadcast(dist_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
@@ -25,13 +62,13 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     bool* frontier = frontier_dist.local();
     bool* frontier_next = frontier_next_dist.local();
 
-    auto time_1 = std::chrono::system_clock::now();
-    
-    for (VertexId u = g.rank_start; u < g.rank_end; u++) {
+    for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
         dist_next[u] = dist[u];
         frontier_next[u] = false;
+    }
 
+    for (VertexId u = g.rank_start; u < g.rank_end; u++) {
         // ignore if distance is set already
         if (dist_next[u] != INT_MAX) continue;
         VertexId* neighbors = g.in_neighbors(u).local(); 
@@ -41,50 +78,21 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
 
             if (!frontier[v]) continue;
 
-            dist_next[u] = level;
-            frontier_next[u] = true;
-        }
-    }
-    barrier();
-    auto time_2 = std::chrono::system_clock::now();
-    std::chrono::duration<double> delta_time = time_2 - time_1;
-    if (rank_me()==0) cout << "Compute time " << delta_time.count() << endl;
-    sync_round_dense(g, dist_next, frontier_next);
-    auto time_3 = std::chrono::system_clock::now();
-    delta_time = time_3 - time_2;
-    if (rank_me()==0) cout << "Sync time " << delta_time.count() << endl;
-    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
-    return frontier_size;
-}
-/*
-void bfs_sparse(Graph& g, dist_object<global_ptr<int>>& dist, dist_object<global_ptr<bool>>& frontier, dist_object<global_ptr<bool>>& next_frontier, int level) {
-    auto dist_local = dist->local();
-    auto frontier_local = frontier->local();
-    auto next_frontier_local = next_frontier->local();
-
-    global_ptr<bool> root_next_frontier = next_frontier.fetch(0).wait();
-    global_ptr<int> root_dist = dist.fetch(0).wait();
-
-    future<> fut_all = make_future();
-    for (int n = g.rank_start; n < g.rank_end; n++) {
-        // skip any that's not in frontier
-        if (!frontier_local[n]) continue;
-        for (int v : g.out_neighbors(n)) {
-            if (dist_local[v] == INT_MAX) {
-                fut_all = when_all(fut_all, rput(level, root_dist+v));
-                fut_all = when_all(fut_all, rput(true, root_next_frontier+v));
+            if (!frontier_next[u]) {
+                dist_next[u] = level; 
+                frontier_next[u] = true;
             }
         }
+
     }
     barrier();
-    fut_all.wait();
-    upcxx::broadcast(next_frontier_local, g.num_nodes, 0).wait();
-    upcxx::broadcast(dist_local, g.num_nodes, 0).wait();
-    barrier();
-    
-    
+    sync_round_dense(g, dist_next, frontier_next);
+    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
+
+    return frontier_size;
 }
-*/
+
+
 void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* frontier_dense) {
     for (VertexId i = 0; i < frontier_size; i++) {
         frontier_dense[frontier_sparse[i]] = true;
@@ -130,7 +138,7 @@ int* bfs(Graph &g, VertexId root) {
 
     while (frontier_size != 0) {
         level++; 
-        bool should_be_sparse_mode = false; // frontier_size < (g.num_nodes / threshold_fraction_denom);
+        bool should_be_sparse_mode = frontier_size < (g.num_nodes / threshold_fraction_denom);
 
         if (DEBUG && rank_me() == 0) cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
         auto time_before = chrono::system_clock::now();
@@ -140,8 +148,7 @@ int* bfs(Graph &g, VertexId root) {
                 dense_to_sparse(frontier_dense, g.num_nodes, frontier_sparse);
             }
             is_sparse_mode = true;
-            // TODO: WORRY ABOUT THIS LATER
-            // frontier_size = bfs_sparse(g, dist, dist_next, )
+            frontier_size = bfs_sparse(g, dist_dist, dist_next_dist, frontier_sparse_dist, frontier_sparse_next_dist, frontier_size, level);
         } else {
             if (is_sparse_mode) {
                 sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
@@ -152,9 +159,9 @@ int* bfs(Graph &g, VertexId root) {
             swap(frontier_dense_next_dist, frontier_dense_dist);
             swap(frontier_dense_next, frontier_dense);
         }
+
         swap(dist_next_dist, dist_dist);
         swap(dist_next, dist);
-
         barrier();
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta = (time_after - time_before);
