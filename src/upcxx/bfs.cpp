@@ -84,10 +84,6 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
 
     p.finalize().wait();
     barrier();
-    if (rank_me() == 0) {
-        for (int i = 0; i < g.num_nodes; i++)
-            cout << dist_next[i] << endl;
-    }
 
     frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
     cout << rank_me() << frontier_size << endl;
