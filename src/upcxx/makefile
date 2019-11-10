@@ -13,7 +13,7 @@ CXX = $(UPCXX_INSTALL)/bin/upcxx
 
 PTHREAD_FLAGS = -pthread
 OPENMP_FLAGS = -fopenmp
-export UPCXX_CODEMODE = debug
+export UPCXX_CODEMODE = O3
 
 
 # Programs to build, assuming each has a corresponding *.cpp file

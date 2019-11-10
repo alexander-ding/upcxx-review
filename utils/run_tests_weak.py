@@ -65,7 +65,7 @@ def run_mp(name, num_nodes):
 
 def run_upcxx(name, num_nodes):
     upcxx_path = (CODE_PATH / "upcxx" / name).absolute()
-    command = "{}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
+    command = "CODE_MODE=PRODUCTION {}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
     print(command)
     output = subprocess.check_output(command, shell=True)
     result = float(output.decode("utf-8")[:-1].split("\n"))
