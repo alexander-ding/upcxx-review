@@ -77,7 +77,7 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     barrier();
 
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
-    if (rank_me() == 0) cout << frontier_size << endl;
+    cout << rank_me() << frontier_size << endl;
 
     promise<> p2;
     broadcast(dist_next, g.num_nodes, 0, world(), operation_cx::as_promise(p2));
