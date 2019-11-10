@@ -73,7 +73,11 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     } else {
         assert(dist_next_root != dist_next_dist);
     }
+    global_ptr<bool> temp = frontier_next_dist; 
     global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
+    if (rank_me() == 0) {
+        assert(temp == frontier_next_dist);
+    }
     int* dist_next = dist_next_dist.local();
     bool* frontier_next = frontier_next_dist.local();
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
