@@ -14,7 +14,7 @@ using namespace std;
 
 const double damp = 0.85;
 
-double pagerank_dense(Graph& g, double* scores, double* scores_next, double* errors, double* outgoing_contrib, int level) {
+double pagerank_dense(Graph& g, double* scores, double* scores_next, double* errors, double* outgoing_contrib, VertexId level) {
     double base_score = (1.0 - damp) / g.num_nodes;
 
     # pragma omp parallel for
@@ -51,7 +51,7 @@ double* pagerank(Graph& g, int num_iters) {
         scores[i] = init_score; // set init score
     }
 
-    int level = 0;
+    VertexId level = 0;
     const int threshold_fraction_denom = 20; 
 
     while (level < num_iters) {

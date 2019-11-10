@@ -11,24 +11,22 @@ using namespace upcxx;
 
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
-void sync_round_sparse(Graph& g, int* dist_next, int* frontier_next) {
+void sync_round_sparse(Graph& g, int* dist_next, VertexId* frontier_next) {
     reduce_all(dist_next, dist_next, g.num_nodes, op_fast_min).wait();
     reduce_all(frontier_next, frontier_next, g.num_nodes, op_fast_max).wait();
     barrier();
 }
 
-VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<int> frontier_dist, global_ptr<int> frontier_next_dist, VertexId frontier_size, int level) {
+VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
     int* dist = dist_dist.local();
     int* dist_next = dist_next_dist.local();
-    int* frontier = frontier_dist.local();
-    int* frontier_next = frontier_next_dist.local();
+    VertexId* frontier = frontier_dist.local();
+    VertexId* frontier_next = frontier_next_dist.local();
 
     for (VertexId i = 0; i < g.num_nodes; i++) {
         dist_next[i] = dist[i];
         frontier_next[i] = -1;
     }
-
-    future<> fut = make_future();
 
     for (VertexId i = 0; i < frontier_size; i++) {
         VertexId u = frontier[i];
@@ -49,14 +47,14 @@ VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_ne
 }
 
 void sync_round_dense(Graph& g, int* dist_next, bool* frontier_next) {  
-    for (int i = 0; i < rank_n(); i++) {
+    for (VertexId i = 0; i < rank_n(); i++) {
         broadcast(dist_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
         broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
     }
     barrier();
 }
 
-VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, int level) {
+VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
     int* dist = dist_dist.local();
     int* dist_next = dist_next_dist.local();
     bool* frontier = frontier_dist.local();
@@ -100,7 +98,7 @@ void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* fr
 }
 
 void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontier_sparse) {
-    for (int i = 0; i < num_nodes; i++) {
+    for (VertexId i = 0; i < num_nodes; i++) {
         if (frontier_dense[i]) {
             frontier_sparse[i] = i;
         } else {
@@ -115,15 +113,14 @@ int* bfs(Graph &g, VertexId root) {
     global_ptr<int> dist_dist = new_array<int>(g.num_nodes); int* dist = dist_dist.local();
     global_ptr<int> dist_next_dist = new_array<int>(g.num_nodes); int* dist_next = dist_next_dist.local();
 
-    global_ptr<int> frontier_sparse_dist = new_array<int>(g.num_nodes); int* frontier_sparse = frontier_sparse_dist.local();
-    global_ptr<int> frontier_sparse_next_dist = new_array<int>(g.num_nodes); int* frontier_sparse_next = frontier_sparse_next_dist.local();
+    global_ptr<VertexId> frontier_sparse_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse = frontier_sparse_dist.local();
+    global_ptr<VertexId> frontier_sparse_next_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse_next = frontier_sparse_next_dist.local();
 
     global_ptr<bool> frontier_dense_dist = new_array<bool>(g.num_nodes); bool* frontier_dense = frontier_dense_dist.local();
     global_ptr<bool> frontier_dense_next_dist = new_array<bool>(g.num_nodes); bool* frontier_dense_next = frontier_dense_next_dist.local();
 
     for (int i = 0; i < g.num_nodes; i++) {
         dist[i] = INT_MAX;
-        dist_next[i] = INT_MAX;
     }
 
     bool is_sparse_mode = true;
@@ -131,9 +128,8 @@ int* bfs(Graph &g, VertexId root) {
     frontier_sparse[0] = root;
     VertexId frontier_size = 1;
     dist[root] = 0; // initialize everyone to INF except root
-    dist_next[root] = 0;
 
-    int level = 0;
+    VertexId level = 0;
     const int threshold_fraction_denom = 20;
 
     while (frontier_size != 0) {
@@ -227,17 +223,18 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
-        dist_object<int> root(rand() % g.num_nodes);
-        int root_local = 0; //root.fetch(0).wait();
+        global_ptr<int> root = new_<int>(rand() % g.num_nodes);
+        root = broadcast(root, 0).wait();
         auto time_before = std::chrono::system_clock::now();
-        int* dist = bfs(g, root_local);
+        int* dist = bfs(g, *root.local());
+        auto time_after = std::chrono::system_clock::now();
+        std::chrono::duration<double> delta_time = time_after - time_before;
+        current_time += delta_time.count();
         /*if (rank_me() == 0) {
             for (int i = 0; i < g.num_nodes; i++)
                 cout << dist[i] << endl;
         }*/
-        auto time_after = std::chrono::system_clock::now();
-        std::chrono::duration<double> delta_time = time_after - time_before;
-        current_time += delta_time.count();
+        barrier();
     }
 
     if (rank_me() == 0) {

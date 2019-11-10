@@ -34,7 +34,7 @@ void print_vector(const vector<T> & v) {
 
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
-VertexId bf_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, int level) {
+VertexId bf_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, VertexId level) {
     // update dist_next to take dist's values
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
@@ -60,7 +60,7 @@ VertexId bf_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, Vert
     return frontier_size;
 }
 
-VertexId bf_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* frontier_next, int level) {
+VertexId bf_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* frontier_next, VertexId level) {
     # pragma omp parallel for
     for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
@@ -97,7 +97,7 @@ void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* fr
 
 void dense_to_sparse(bool* frontier_dense, int num_nodes, int* frontier_sparse) {
     # pragma omp parallel for
-    for (int i = 0; i < num_nodes; i++) {
+    for (VertexId i = 0; i < num_nodes; i++) {
         if (frontier_dense[i]) {
             frontier_sparse[i] = i;
         } else {
@@ -127,7 +127,7 @@ int* bellman_ford(Graph& g, int root) {
     VertexId frontier_size = 1;
     dist[root] = 0;
 
-    int level = 0;
+    VertexId level = 0;
     const int threshold_fraction_denom = 20; 
 
     while (frontier_size != 0 && level < g.num_nodes) {

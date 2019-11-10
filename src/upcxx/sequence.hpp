@@ -51,6 +51,14 @@ namespace sequence {
     return m;
   }
 
+  template <class ET, class intT> 
+  ET sum(ET *In, intT n) {
+    ET sum = 0;
+    for (intT i = 0; i < n; i++) {
+      sum += In[i];
+    }
+    return sum;
+  }
 }
 
 #endif // _A_SEQUENCE_INCLUDED

@@ -15,13 +15,19 @@ typedef int VertexId;
 typedef int EdgeId;
 
 class Graph {
-    dist_object<EdgeId*> out_offsets;
-    dist_object<VertexId*> out_edges; 
-    dist_object<int*> out_weights;
+    global_ptr<EdgeId> out_offsets_dist;
+    EdgeId* out_offsets;
+    global_ptr<VertexId> out_edges_dist; 
+    VertexId* out_edges;
+    global_ptr<int> out_weights_dist;
+    int* out_weights;
 
-    dist_object<EdgeId*> in_offsets;
-    dist_object<VertexId*> in_edges;
-    dist_object<int*> in_weights;
+    global_ptr<EdgeId> in_offsets_dist;
+    EdgeId* in_offsets;
+    global_ptr<VertexId> in_edges_dist;
+    VertexId* in_edges;
+    global_ptr<int> in_weights_dist;
+    int* in_weights;
         
     public:
         Graph(char* path);
@@ -39,21 +45,32 @@ class Graph {
         EdgeId in_degree(const VertexId n);
         EdgeId out_degree(const VertexId n);
 
-        VertexId* in_neighbors(const VertexId n);
-        VertexId* out_neighbors(const VertexId n);
-        int* in_weights_neighbors(const VertexId n);
-        int* out_weights_neighbors(const VertexId n);
+        global_ptr<VertexId> in_neighbors(const VertexId n);
+        global_ptr<VertexId> out_neighbors(const VertexId n);
+        global_ptr<int> in_weights_neighbors(const VertexId n);
+        global_ptr<int> out_weights_neighbors(const VertexId n);
+
+        inline VertexId rank_start_node(const int n) { 
+            return int(num_nodes / rank_n() * n);
+        }
+        inline VertexId rank_end_node(const int n) {
+            return (n == rank_n() - 1) ? (num_nodes) : (int(num_nodes / rank_n() * (n+1)));
+        }
+        inline VertexId rank_num_nodes(const int n) {
+            return rank_end_node(n) - rank_start_node(n);
+        }
 };
 
-Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 0)), in_weights(newA(int, 0)), out_offsets(newA(EdgeId, 0)), out_edges(newA(VertexId, 0)), out_weights(newA(int, 0)) {
+Graph::Graph(char *path) {
+    if (!file_exists(path)) {
+        if (rank_me() == 0)
+            cout << "Graph file does not exist" << endl;
+        abort();
+    }
     ifstream fin(path);
     VertexId n; EdgeId m;
     fin >> n >> m;
     num_nodes = n; num_edges = m;
-
-    // get rid of default values
-    free(*out_offsets); free(*out_edges); free(*out_weights);
-    free(*in_offsets); free(*in_edges); free(*in_weights);
 
     rank_start = int(n / rank_n() * rank_me());
     if (rank_me() == rank_n() - 1) {
@@ -64,8 +81,10 @@ Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 
 
     num_nodes_local = rank_end-rank_start;
 
-    *out_offsets = newA(EdgeId, num_nodes_local);
-    *in_offsets = newA(EdgeId, num_nodes_local);
+    out_offsets_dist = new_array<EdgeId>(num_nodes_local);
+    in_offsets_dist = new_array<EdgeId>(num_nodes_local);
+    out_offsets = out_offsets_dist.local();
+    in_offsets = in_offsets_dist.local();
     
     int offset, edge, weight; 
     int offset_start;
@@ -78,7 +97,7 @@ Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 
             offset_start = offset;
         }
         if (i >= rank_start && i < rank_end)
-            (*out_offsets)[i-rank_start] = offset-offset_start;
+            out_offsets[i-rank_start] = offset-offset_start;
         if (i == rank_end)
             offset_end = offset;
     }
@@ -86,14 +105,16 @@ Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 
         offset_end = m;
 
     num_out_edges_local = offset_end - offset_start;
-    *out_edges = newA(VertexId, num_out_edges_local);
-    *out_weights = newA(int, num_out_edges_local);
+    out_edges_dist = new_array<VertexId>(num_out_edges_local);
+    out_edges = out_edges_dist.local();
+    out_weights_dist = new_array<int>(num_out_edges_local);
+    out_weights = out_weights_dist.local();
 
     for (int i = 0; i < m; i++) {
         fin >> edge >> weight;
         if (i >= offset_start && i < offset_end) {
-            (*out_edges)[i-offset_start] = edge;
-            (*out_weights)[i-offset_start] = weight;
+            out_edges[i-offset_start] = edge;
+            out_weights[i-offset_start] = weight;
         }
     }
 
@@ -104,7 +125,7 @@ Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 
             offset_start = offset;
         }
         if (i >= rank_start && i < rank_end)
-            (*in_offsets)[i-rank_start] = offset-offset_start;
+            in_offsets[i-rank_start] = offset-offset_start;
         if (i == rank_end)
             offset_end = offset;
     }
@@ -112,13 +133,15 @@ Graph::Graph(char *path) : in_offsets(newA(EdgeId, 0)), in_edges(newA(VertexId, 
         offset_end = m;
 
     num_in_edges_local = offset_end - offset_start;
-    *in_edges = newA(EdgeId, num_in_edges_local);
-    *in_weights = newA(EdgeId, num_in_edges_local);
+    in_edges_dist = new_array<VertexId>(num_in_edges_local);
+    in_edges = in_edges_dist.local();
+    in_weights_dist = new_array<int>(num_in_edges_local);
+    in_weights = in_weights_dist.local();
     for (int i = 0; i < m; i++) {
         fin >> edge >> weight;
         if (i >= offset_start && i < offset_end) {
-            (*in_edges)[i-offset_start] = edge;
-            (*in_weights)[i-offset_start] = weight;
+            in_edges[i-offset_start] = edge;
+            in_weights[i-offset_start] = weight;
         }
     }
 }
@@ -130,37 +153,37 @@ int Graph::vertex_rank(const VertexId n) {
 EdgeId Graph::in_degree(const VertexId n)  {
     assert((n >= rank_start) && (n < rank_end));
     if ((n - rank_start) == (num_nodes_local-1)) {
-        return num_in_edges_local - (*in_offsets)[num_nodes_local-1];
+        return num_in_edges_local - in_offsets[num_nodes_local-1];
     }
-    return (*in_offsets)[(n-rank_start)+1] - (*in_offsets)[n-rank_start];
+    return in_offsets[(n-rank_start)+1] - in_offsets[n-rank_start];
 }
 
 EdgeId Graph::out_degree(const int n)  {
     assert((n >= rank_start) && (n < rank_end));
     if ((n - rank_start) == (num_nodes_local-1)) {
-        return num_out_edges_local - (*out_offsets)[num_nodes_local-1];
+        return num_out_edges_local - out_offsets[num_nodes_local-1];
     }
-    return (*out_offsets)[(n-rank_start)+1] - (*out_offsets)[n-rank_start];
+    return out_offsets[(n-rank_start)+1] - out_offsets[n-rank_start];
 }
 
-VertexId* Graph::in_neighbors(const int n) {
+global_ptr<VertexId> Graph::in_neighbors(const int n) {
     assert((n >= rank_start) && (n < rank_end));
-    return (*in_edges) + (*in_offsets)[n-rank_start];
+    return in_edges_dist + in_offsets[n-rank_start];
 }
 
-VertexId* Graph::out_neighbors(const int n) {
+global_ptr<VertexId> Graph::out_neighbors(const int n) {
     assert((n >= rank_start) && (n < rank_end));
-    return (*out_edges) + (*out_offsets)[n-rank_start];
+    return out_edges_dist + out_offsets[n-rank_start];
 }
 
-int* Graph::in_weights_neighbors(const int n) {
+global_ptr<int> Graph::in_weights_neighbors(const int n) {
     assert((n >= rank_start) && (n < rank_end));
-    return (*in_weights) + (*in_offsets)[n-rank_start];
+    return in_weights_dist + in_offsets[n-rank_start];
 }
 
-int* Graph::out_weights_neighbors(const int n) {
+global_ptr<int> Graph::out_weights_neighbors(const int n) {
     assert((n >= rank_start) && (n < rank_end));
-    return (*out_weights) + (*out_offsets)[n-rank_start];
+    return out_weights_dist + out_offsets[n-rank_start];
 }
 
 #endif

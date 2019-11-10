@@ -3,100 +3,196 @@
 #include <chrono>
 #include <ctime> 
 #include <climits>
+#include <stdlib.h> 
+#include <time.h>
+#include "sequence.hpp"
 
 using namespace upcxx;
-template <typename T>
-void print_vector(const vector<T> & v) {
-    cout << endl;
-    for (auto i = v.begin(); i != v.end(); ++i) {
-        cout << *i << " ";
-    }
-    cout << endl;
+
+struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
+
+void sync_round_sparse(Graph& g, VertexId* labels_next, VertexId* frontier_next) {
+    reduce_all(labels_next, labels_next, g.num_nodes, op_fast_min).wait();
+    reduce_all(frontier_next, frontier_next, g.num_nodes, op_fast_max).wait();
+    barrier();
 }
 
+VertexId cc_sparse(Graph& g, global_ptr<int> labels_dist, global_ptr<int> labels_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
+    int* labels = labels_dist.local();
+    int* labels_next = labels_next_dist.local();
+    VertexId* frontier = frontier_dist.local();
+    VertexId* frontier_next = frontier_next_dist.local();
 
-vector<int> connected_components(Graph &g) {
-    // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
-
-    dist_object<global_ptr<int>> labels(new_array<int>(g.num_nodes));
-    dist_object<global_ptr<bool>> changed_last_round(new_array<bool>(g.num_nodes));
-    auto labels_local = labels->local();
-    auto changed_last_round_local = changed_last_round->local();
-    for (int i = 0; i < g.num_nodes; i++) {
-        labels_local[i] = i;
-        changed_last_round_local[i] = true;
+    for (VertexId i = 0; i < g.num_nodes; i++) {
+        labels_next[i] = labels[i];
+        frontier_next[i] = -1;
     }
 
+    for (VertexId i = 0; i < frontier_size; i++) {
+        VertexId u = frontier[i];
+        if (!(g.rank_start <= u && u < g.rank_end)) continue;
+        VertexId* neighbors = g.out_neighbors(u).local();
+        for (EdgeId j = 0; j < g.out_degree(u); j++) {
+            VertexId v = neighbors[j];
+            if (labels_next[v] > labels[u]) {
+                labels_next[v] = labels[u];
+                frontier_next[v] = v;
+            }
+        }
+    }
     barrier();
+    sync_round_sparse(g, labels_next, frontier_next);
+    frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes, nonNegF());
+    return frontier_size; 
+}
 
-    bool is_new_added = true; // is there new node edited
+void sync_round_dense(Graph& g, int* labels_next, bool* frontier_next) {  
+    for (VertexId i = 0; i < rank_n(); i++) {
+        broadcast(labels_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
+        broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
+    }
+    barrier();
+}
 
-    while (is_new_added) {
-        bool new_added = false;
-        for (int u = g.rank_start; u < g.rank_end; u++) {
-            vector<int> neighbors = g.in_neighbors(u);
-            for (int j = 0; j < g.in_degree(u); j++) {
-                int v = neighbors[j];
-                // don't care about it if v hasn't been updated last round
-                if (!changed_last_round_local[v]) continue; 
-                if (labels_local[v] < labels_local[u]) {
-                    labels_local[u] = labels_local[v];
-                    changed_last_round_local[u] = true;
-                    new_added = true;
-                }
+VertexId cc_dense(Graph& g, global_ptr<int> labels_dist, global_ptr<int> labels_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
+    int* labels = labels_dist.local();
+    int* labels_next = labels_next_dist.local();
+    bool* frontier = frontier_dist.local();
+    bool* frontier_next = frontier_next_dist.local();
+
+    for (VertexId u = 0; u < g.num_nodes; u++) {
+        // update next round of dist
+        labels_next[u] = labels[u];
+        frontier_next[u] = false;
+    }
+
+    for (VertexId u = g.rank_start; u < g.rank_end; u++) {
+        VertexId* neighbors = g.in_neighbors(u).local(); 
+
+        for (EdgeId j = 0; j < g.in_degree(u); j++) {
+            VertexId v = neighbors[j];
+
+            if (!frontier[v]) continue;
+
+            if (labels_next[u] > labels[v]) {
+                labels_next[u] = labels[v]; 
+                compare_and_compare_and_swap(&frontier_next[u]);
             }
         }
 
-        barrier();
+    }
+    barrier();
+    sync_round_dense(g, labels_next, frontier_next);
+    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
 
-        // synchronize all
-        global_ptr<int> root_labels = labels.fetch(0).wait();
-        future<> fut_all_labels = make_future();
-        for (int n = g.rank_start; n < g.rank_end; n++) {
-            fut_all_labels = when_all(fut_all_labels, rput(labels_local[n], root_labels+n));
+    return frontier_size;
+}
+
+
+void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* frontier_dense) {
+    for (VertexId i = 0; i < frontier_size; i++) {
+        frontier_dense[frontier_sparse[i]] = true;
+    }
+}
+
+void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontier_sparse) {
+    for (VertexId i = 0; i < num_nodes; i++) {
+        if (frontier_dense[i]) {
+            frontier_sparse[i] = i;
+        } else {
+            frontier_sparse[i] = -1;
         }
-        global_ptr<bool> root_changed_last = changed_last_round.fetch(0).wait();
-        future<> fut_all_changed = make_future();
-        for (int n = g.rank_start; n < g.rank_end; n++) {
-            fut_all_changed = when_all(fut_all_changed, rput(changed_last_round_local[n], root_changed_last+n));
+    }
+    sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
+}
+
+int* cc(Graph &g) {
+    // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
+    global_ptr<int> labels_dist = new_array<int>(g.num_nodes); int* labels = labels_dist.local();
+    global_ptr<int> labels_next_dist = new_array<int>(g.num_nodes); int* labels_next = labels_next_dist.local();
+
+    global_ptr<VertexId> frontier_sparse_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse = frontier_sparse_dist.local();
+    global_ptr<VertexId> frontier_sparse_next_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse_next = frontier_sparse_next_dist.local();
+
+    global_ptr<bool> frontier_dense_dist = new_array<bool>(g.num_nodes); bool* frontier_dense = frontier_dense_dist.local();
+    global_ptr<bool> frontier_dense_next_dist = new_array<bool>(g.num_nodes); bool* frontier_dense_next = frontier_dense_next_dist.local();
+
+    for (int i = 0; i < g.num_nodes; i++) {
+        labels[i] = i;
+        frontier_sparse[i] = i;
+    }
+
+    VertexId frontier_size = g.num_nodes;
+
+    bool is_sparse_mode = true;
+
+    VertexId level = 0;
+    const int threshold_fraction_denom = 20;
+
+    while (frontier_size != 0) {
+        level++; 
+        bool should_be_sparse_mode = frontier_size < (g.num_nodes / threshold_fraction_denom);
+
+        if (DEBUG && rank_me() == 0) cout << "Round " << level << " | " << "Frontier: " << frontier_size << " | Sparse? " << should_be_sparse_mode << endl;
+        auto time_before = chrono::system_clock::now();
+
+        if (should_be_sparse_mode) {
+            if (!is_sparse_mode) {
+                dense_to_sparse(frontier_dense, g.num_nodes, frontier_sparse);
+            }
+            is_sparse_mode = true;
+            frontier_size = cc_sparse(g, labels_dist, labels_next_dist, frontier_sparse_dist, frontier_sparse_next_dist, frontier_size, level);
+        } else {
+            if (is_sparse_mode) {
+                sparse_to_dense(frontier_sparse, frontier_size, frontier_dense);
+            }
+            is_sparse_mode = false;
+            frontier_size = cc_dense(g, labels_dist, labels_next_dist, frontier_dense_dist, frontier_dense_next_dist, level);
+
+            swap(frontier_dense_next_dist, frontier_dense_dist);
+            swap(frontier_dense_next, frontier_dense);
         }
 
-        fut_all_labels.wait();
-        fut_all_changed.wait();
-
+        swap(labels_next_dist, labels_dist);
+        swap(labels_next, labels);
         barrier();
-        auto f_broadcast = upcxx::broadcast(labels_local, g.num_nodes, 0);
-        f_broadcast = when_all(f_broadcast, upcxx::broadcast(changed_last_round_local, g.num_nodes, 0));
-        f_broadcast.wait();
+        auto time_after = chrono::system_clock::now();
+        chrono::duration<double> delta = (time_after - time_before);
+        if (DEBUG && rank_me() == 0) cout << "Time: " << delta.count() << endl;
+    }
 
-        is_new_added = reduce_all(new_added, op_bit_or).wait();
-    };
+    delete_array(labels_next_dist); delete_array(frontier_sparse_dist); delete_array(frontier_sparse_next_dist); delete_array(frontier_dense_dist); delete_array(frontier_dense_next_dist);
 
-    // ready the return
-    vector<int> labels_return;
-    labels_return.assign(labels_local, labels_local+g.num_nodes);
-    return labels_return;
+    return labels; 
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        cout << "Usage: ./connected_components <path_to_graph> <num_iters>" << endl;
+        cout << "Usage: ./bellman_ford <path_to_graph> <num_iters>" << endl;
         exit(-1);
     }
-
+    
     init();
 
     Graph g(argv[1]);
     int num_iters = atoi(argv[2]);
+
     barrier(); 
+    srand(time(NULL));
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
         auto time_before = std::chrono::system_clock::now();
-        vector<int> labels = connected_components(g);
+        int* labels = cc(g);
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
+        /* if (rank_me() == 0) {
+            for (int i = 0; i < g.num_nodes; i++)
+                cout << labels[i] << endl;
+        } */
+        barrier();
     }
+    
     if (rank_me() == 0) {
         std::cout << current_time / num_iters << std::endl;
         /* if (!verify(g, root, dist)) {

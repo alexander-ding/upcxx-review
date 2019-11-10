@@ -16,7 +16,7 @@ using namespace std;
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 struct trueF{bool operator() (bool a) {return a;}};
 
-VertexId cc_sparse(Graph& g, VertexId* labels, VertexId* labels_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, int level) {
+VertexId cc_sparse(Graph& g, VertexId* labels, VertexId* labels_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, VertexId level) {
     // update labels_next to take labels's values
     // also reset visited 
     # pragma omp parallel for
@@ -34,22 +34,14 @@ VertexId cc_sparse(Graph& g, VertexId* labels, VertexId* labels_next, VertexId* 
             if (priority_update(&labels_next[v], labels[u])) {
                 frontier_next[v] = v;
             }
-        }
-
-        neighbors = g.in_neighbors(u);
-        for (EdgeId j = 0; j < g.in_degree(u); j++) {
-            VertexId v = neighbors[j];
-            if (priority_update(&labels_next[v], labels[u])) {
-                frontier_next[v] = v;
-            }
-        }        
+        }       
     }
 
     frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes, nonNegF());
     return frontier_size;
 }
 
-int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, bool* frontier_next, int level) {
+int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, bool* frontier_next, VertexId level) {
     auto time_before = chrono::system_clock::now();
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
@@ -63,17 +55,7 @@ int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, 
 
     # pragma omp parallel for
     for (VertexId u = 0; u < g.num_nodes; u++) {
-        VertexId* neighbors = g.out_neighbors(u);
-        for (EdgeId j = 0; j < g.out_degree(u); j++) {
-            VertexId v = neighbors[j];
-            if (!frontier[v]) continue; // ignore non-frontiers
-            if (labels_next[u] > labels[v]) {
-                labels_next[u] = labels[v];
-                if (!frontier_next[u]) frontier_next[u] = true;
-            }
-        }
-
-        neighbors = g.in_neighbors(u);
+        VertexId* neighbors = g.in_neighbors(u);
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
             if (!frontier[v]) continue; // ignore non-frontiers
@@ -134,7 +116,7 @@ VertexId* cc(Graph& g) {
 
     bool is_sparse_mode = true;
 
-    int level = 0;
+    VertexId level = 0;
     const int threshold_fraction_denom = 20; 
 
     while (frontier_size != 0) {
