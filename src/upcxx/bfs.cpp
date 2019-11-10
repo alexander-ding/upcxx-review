@@ -112,13 +112,13 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
         // ignore if distance is set already
         if (dist_next[u] != INT_MAX) continue;
-        cout << "Checking out " << u << endl;
         VertexId* neighbors = g.in_neighbors(u).local(); 
 
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
 
             if (!frontier[v]) continue;
+            cout << "Checking out " << v << endl;
 
             if (!frontier_next[u]) {
                 cout << "Setting " << u << endl;
