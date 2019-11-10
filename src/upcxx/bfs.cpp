@@ -102,6 +102,8 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     bool* frontier = frontier_dist.local();
     bool* frontier_next = frontier_next_dist.local();
 
+    if (rank_me() == 0) cout << sequence::sumFlagsSerial(frontier_dist.local(), g.num_nodes) << endl;
+
     for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
         dist_next[u] = dist[u];
