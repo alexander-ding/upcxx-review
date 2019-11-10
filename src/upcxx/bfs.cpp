@@ -12,8 +12,10 @@ using namespace upcxx;
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
 void sync_round_sparse(Graph& g, int* dist_next, VertexId* frontier_next) {
-    reduce_all(dist_next, dist_next, g.num_nodes, op_fast_min).wait();
-    reduce_all(frontier_next, frontier_next, g.num_nodes, op_fast_max).wait();
+    promise<> p;
+    reduce_all(dist_next, dist_next, g.num_nodes, op_fast_min, world(), operation_cx::as_promise(p));
+    reduce_all(frontier_next, frontier_next, g.num_nodes, op_fast_max, world(), operation_cx::as_promise(p));
+    p.finalize().wait();
     barrier();
 }
 
@@ -55,11 +57,29 @@ VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_ne
     return frontier_size; 
 }
 
-void sync_round_dense(Graph& g, int* dist_next, bool* frontier_next) {  
+void sync_round_dense_other(Graph& g, int* dist_next, bool* frontier_next) {  
     for (VertexId i = 0; i < rank_n(); i++) {
         broadcast(dist_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
         broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
     }
+    barrier();
+}
+
+void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_next_dist) {  
+    promise<> p;
+    global_ptr<int> dist_next_root = broadcast(dist_next_dist, 0).wait();
+    global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
+    int* dist_next = dist_next_dist.local();
+    bool* frontier_next = frontier_next_dist.local();
+    rput(dist_next+g.rank_start, dist_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
+    rput(frontier_next+g.rank_start, frontier_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
+    p.finalize().wait();
+    barrier();
+
+    promise<> p2;
+    broadcast(dist_next, g.num_nodes, 0, world(), operation_cx::as_promise(p2));
+    broadcast(frontier_next, g.num_nodes, 0, world(), operation_cx::as_promise(p2));
+    p2.finalize().wait();
     barrier();
 }
 
@@ -97,10 +117,14 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     auto time_2 = chrono::system_clock::now();
     chrono::duration<double> delta = (time_2 - time_1);
     if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
-    sync_round_dense(g, dist_next, frontier_next);
+    sync_round_dense(g, dist_next_dist, frontier_next_dist);
     auto time_3 = chrono::system_clock::now();
     delta = time_3 - time_2;
     if (DEBUG && rank_me() == 0) cout << "Communication: " << delta.count() << endl;
+    sync_round_dense_other(g, dist_next, frontier_next);
+    auto time_4 = chrono::system_clock::now();
+    delta = time_4 - time_3;
+    if (DEBUG && rank_me() == 0) cout << "Communication (should be faster) " << delta.count() << endl;
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
 
     return frontier_size;
