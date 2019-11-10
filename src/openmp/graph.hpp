@@ -9,8 +9,8 @@
 
 using namespace std;
 
-typedef int VertexId;
-typedef int EdgeId; 
+typedef long VertexId;
+typedef long EdgeId; 
 
 class Graph {
     EdgeId* out_offsets;

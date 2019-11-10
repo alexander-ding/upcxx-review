@@ -34,7 +34,7 @@ void print_vector(const vector<T> & v) {
 
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
-VertexId bf_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, VertexId level) {
+VertexId bf_sparse(Graph& g, DistInt* dist, DistInt* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, VertexId level) {
     // update dist_next to take dist's values
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
@@ -49,7 +49,7 @@ VertexId bf_sparse(Graph& g, int* dist, int* dist_next, VertexId* frontier, Vert
         int* weights = g.out_weights_neighbors(u);
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            int relax_dist = dist[u] + weights[j];
+            DistInt relax_dist = dist[u] + weights[j];
             if (priority_update(&dist_next[v], relax_dist)) {
                 frontier_next[v] = v;
             }
