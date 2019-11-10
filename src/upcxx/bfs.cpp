@@ -202,6 +202,7 @@ int* bfs(Graph &g, VertexId root) {
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta = (time_after - time_before);
         if (DEBUG && rank_me() == 0) cout << "Time: " << delta.count() << endl;
+        if (rank_me() == 0) cout << "Frontier size " << frontier_size << endl;
     }
 
     delete_array(dist_next_dist); delete_array(frontier_sparse_dist); delete_array(frontier_sparse_next_dist); delete_array(frontier_dense_dist); delete_array(frontier_dense_next_dist);
