@@ -75,11 +75,14 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     }
     global_ptr<bool> temp = frontier_next_dist; 
     global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
-    if (rank_me() == 0) {
-        assert(temp == frontier_next_dist);
-    }
     int* dist_next = dist_next_dist.local();
     bool* frontier_next = frontier_next_dist.local();
+    if (rank_me() == 0) {
+        assert(temp == frontier_next_dist);
+        for (int i = 0; i < g.num_nodes; i++) {
+            if (frontier_next[i]) cout << i << endl;
+        }
+    }
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
     cout << rank_me() << frontier_size << endl;
     rput(dist_next+g.rank_start, dist_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
