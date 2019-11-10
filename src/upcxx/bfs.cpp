@@ -118,6 +118,7 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
 
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
+            cout << "Neighbor " << v << endl;
 
             if (!frontier[v]) continue;
             cout << "Checking out " << v << endl;
