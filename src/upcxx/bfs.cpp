@@ -126,11 +126,10 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     delta = time_3 - time_2;
     if (DEBUG && rank_me() == 0) cout << "Communication: " << delta.count() << endl;
     sync_round_dense_other(g, dist_next, frontier_next);
-    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
     auto time_4 = chrono::system_clock::now();
     delta = time_4 - time_3;
     if (DEBUG && rank_me() == 0) cout << "Communication (should be faster) " << delta.count() << endl;
-    frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
+    VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
 
     return frontier_size;
 }
