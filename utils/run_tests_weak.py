@@ -53,8 +53,9 @@ ALL_TESTS = {
     'cc': cc,
     'pagerank': pagerank
 }
+python utils/run_tests_real.py --kind=upcxx --num_nodes_min=1 --num_nodes_max=1 --num_iters=8 --output=output/upcxx_real_1.json
 
-
+python utils/run_tests_weak --kind=upcxx --output=output/test_weak_scaling.json
 def run_mp(name, num_nodes):
     mp_path = (CODE_PATH / "openmp" / name).absolute()
     command = "OMP_NUM_THREADS={} CODE_MODE=PRODUCTION bash -c '{}'".format(num_nodes, mp_path)
@@ -65,7 +66,7 @@ def run_mp(name, num_nodes):
 
 def run_upcxx(name, num_nodes):
     upcxx_path = (CODE_PATH / "upcxx" / name).absolute()
-    command = "CODE_MODE=PRODUCTION {}/bin/upcxx-run -n {} {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
+    command = "CODE_MODE=PRODUCTION {}/bin/upcxx-run -n {} -shared-heap 4G {}".format(os.environ['UPCXX_INSTALL'], num_nodes, upcxx_path)
     print(command)
     output = subprocess.check_output(command, shell=True)
     result = float(output.decode("utf-8")[:-1].split("\n"))
