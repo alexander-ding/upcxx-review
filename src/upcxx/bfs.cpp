@@ -67,16 +67,23 @@ void sync_round_dense_other(Graph& g, int* dist_next, bool* frontier_next) {
 
 void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_next_dist) {  
     promise<> p;
+    int* dist_next = dist_next_dist.local();
+    bool* frontier_next = frontier_next_dist.local();
+    global_ptr<bool> temp = frontier_next_dist; 
+    if (rank_me() == 0) {
+        assert(temp == frontier_next_dist);
+        for (int i = 0; i < g.num_nodes; i++) {
+            if (frontier_next[i]) cout << i << endl;
+        }
+    }
     global_ptr<int> dist_next_root = broadcast(dist_next_dist, 0).wait();
     if (rank_me() == 0) {
         assert(dist_next_root == dist_next_dist);
     } else {
         assert(dist_next_root != dist_next_dist);
     }
-    global_ptr<bool> temp = frontier_next_dist; 
+    
     global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
-    int* dist_next = dist_next_dist.local();
-    bool* frontier_next = frontier_next_dist.local();
     if (rank_me() == 0) {
         assert(temp == frontier_next_dist);
         for (int i = 0; i < g.num_nodes; i++) {
