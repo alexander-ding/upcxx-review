@@ -1,2 +1,4 @@
 *
 !.gitignore
+!toy
+!toy/*.txt
