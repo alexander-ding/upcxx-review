@@ -69,27 +69,13 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     promise<> p;
     int* dist_next = dist_next_dist.local();
     bool* frontier_next = frontier_next_dist.local();
-    global_ptr<bool> temp = frontier_next_dist; 
     if (rank_me() == 0) {
-        assert(temp == frontier_next_dist);
         for (int i = 0; i < g.num_nodes; i++) {
             if (frontier_next[i]) cout << i << endl;
         }
     }
     global_ptr<int> dist_next_root = broadcast(dist_next_dist, 0).wait();
-    if (rank_me() == 0) {
-        assert(dist_next_root == dist_next_dist);
-    } else {
-        assert(dist_next_root != dist_next_dist);
-    }
-    
     global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
-    if (rank_me() == 0) {
-        assert(temp == frontier_next_dist);
-        for (int i = 0; i < g.num_nodes; i++) {
-            if (frontier_next[i]) cout << i << endl;
-        }
-    }
     VertexId frontier_size = sequence::sumFlagsSerial(frontier_next, g.num_nodes);
     cout << rank_me() << frontier_size << endl;
     rput(dist_next+g.rank_start, dist_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
@@ -142,6 +128,8 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
     barrier();
     auto time_2 = chrono::system_clock::now();
     chrono::duration<double> delta = (time_2 - time_1);
+    if (rank_me() == 0) cout << sequence::sumFlagsSerial(frontier_next, g.num_nodes) << endl;
+    if (rank_me() == 0) cout << sequence::sumFlagsSerial(frontier_next_dist.local(), g.num_nodes) << endl;
     if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
     sync_round_dense(g, dist_next_dist, frontier_next_dist);
     auto time_3 = chrono::system_clock::now();
