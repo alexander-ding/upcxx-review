@@ -18,11 +18,12 @@ void sync_round_sparse(Graph& g, int* dist_next, VertexId* frontier_next) {
 }
 
 VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
+    auto time_1 = chrono::system_clock::now();
     int* dist = dist_dist.local();
     int* dist_next = dist_next_dist.local();
     VertexId* frontier = frontier_dist.local();
     VertexId* frontier_next = frontier_next_dist.local();
-
+    
     for (VertexId i = 0; i < g.num_nodes; i++) {
         dist_next[i] = dist[i];
         frontier_next[i] = -1;
@@ -40,8 +41,16 @@ VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_ne
             }
         }
     }
+    
     barrier();
+    auto time_2 = chrono::system_clock::now();
+    chrono::duration<double> delta = (time_2 - time_1);
+    if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
+    
     sync_round_sparse(g, dist_next, frontier_next);
+    auto time_3 = chrono::system_clock::now();
+    delta = time_3 - time_2;
+    if (DEBUG && rank_me() == 0) cout << "Calculation: " << delta.count() << endl;
     frontier_size = sequence::filter(frontier_next, frontier, g.num_nodes, nonNegF());
     return frontier_size; 
 }
