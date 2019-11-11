@@ -42,23 +42,25 @@ algorithms = ['bfs', 'bellman_ford', 'pagerank', 'connected_components']
 def main(args):
     graph_paths = get_graphs(args.graphs)
     
-    
     if Path(args.output).exists():
         output_json = json.load(open(args.output))
     else:
         output_json = {}
+
+    if args.kind not in output_json.keys():
+        output_json[args.kind] = {}
     for algorithm in algorithms:
-        if algorithm not in output_json.keys():
-            output_json[algorithm] = {}
+        if algorithm not in output_json[args.kind].keys():
+            output_json[args.kind][algorithm] = {}
         for graph in graph_paths:
-            if graph[-1] not in output_json[algorithm].keys():
-                output_json[algorithm][graph[-1]] = {}
+            if graph[-1] not in output_json[args.kind][algorithm].keys():
+                output_json[args.kind][algorithm][graph[-1]] = {}
             num_nodes = args.num_nodes_min
             while num_nodes <= args.num_nodes_max:
                 runtime = run(algorithm, graph, args.kind, num_nodes, args.num_iters)
-                output_json[algorithm][graph[-1]][num_nodes] = runtime
+                output_json[args.kind][algorithm][graph[-1]][num_nodes] = runtime
                 num_nodes *= 2
-    json.dump(output_json, open(args.output))
+    json.dump(output_json, open(args.output, mode='w'), indent=4, sort_keys=True)
 
 if __name__ == "__main__":
     check_cwd()
