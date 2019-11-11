@@ -5,21 +5,25 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <climits>
 #include "utils.hpp"
 
 using namespace std;
 
-typedef int VertexId;
-typedef int EdgeId; 
+typedef long VertexId;
+typedef long EdgeId; 
+typedef EdgeId Weight;
+
+const long INF = LONG_MAX;
 
 class Graph {
     EdgeId* out_offsets;
     VertexId* out_edges;
-    int* out_weights;
+    Weight* out_weights;
 
     EdgeId* in_offsets;
     VertexId* in_edges;
-    int* in_weights;
+    Weight* in_weights;
 
     public:
         Graph(char *path);
@@ -33,8 +37,8 @@ class Graph {
         VertexId* out_neighbors(VertexId n) const;
         VertexId* in_neighbors(VertexId n) const;
 
-        int* out_weights_neighbors(VertexId n) const;
-        int* in_weights_neighbors(VertexId n) const;
+        Weight* out_weights_neighbors(VertexId n) const;
+        Weight* in_weights_neighbors(VertexId n) const;
 };
 
 Graph::Graph(char* path) {
@@ -55,12 +59,12 @@ Graph::Graph(char* path) {
     out_edges = newA(EdgeId, m);
     in_edges = newA(VertexId, m);
 
-    out_weights = newA(int, m);
-    in_weights = newA(int, m);
+    out_weights = newA(Weight, m);
+    in_weights = newA(Weight, m);
 
     EdgeId offset;
     VertexId edge;
-    int weight;
+    Weight weight;
     for (EdgeId i = 0; i < n; i++) {
         fin >> offset; 
         out_offsets[i] = offset;
@@ -102,11 +106,11 @@ VertexId* Graph::in_neighbors(VertexId n) const {
     return this->in_edges+this->in_offsets[n];
 }
 
-int* Graph::out_weights_neighbors(VertexId n) const {
+Weight* Graph::out_weights_neighbors(VertexId n) const {
     return this->out_weights+this->out_offsets[n];
 }
 
-int* Graph::in_weights_neighbors(VertexId n) const {
+Weight* Graph::in_weights_neighbors(VertexId n) const {
     return this->in_weights+this->in_offsets[n];
 }
 

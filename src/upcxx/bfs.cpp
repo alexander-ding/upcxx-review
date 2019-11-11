@@ -8,10 +8,11 @@
 #include "sequence.hpp"
 
 using namespace upcxx;
+typedef VertexId Distance;
 
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
-void sync_round_sparse(Graph& g, int* dist_next, VertexId* frontier_next) {
+void sync_round_sparse(Graph& g, Distance* dist_next, VertexId* frontier_next) {
     promise<> p;
     reduce_all(dist_next, dist_next, g.num_nodes, op_fast_min, world(), operation_cx::as_promise(p));
     reduce_all(frontier_next, frontier_next, g.num_nodes, op_fast_max, world(), operation_cx::as_promise(p));
@@ -19,10 +20,10 @@ void sync_round_sparse(Graph& g, int* dist_next, VertexId* frontier_next) {
     barrier();
 }
 
-VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
+VertexId bfs_sparse(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distance> dist_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
     auto time_1 = chrono::system_clock::now();
-    int* dist = dist_dist.local();
-    int* dist_next = dist_next_dist.local();
+    Distance* dist = dist_dist.local();
+    Distance* dist_next = dist_next_dist.local();
     VertexId* frontier = frontier_dist.local();
     VertexId* frontier_next = frontier_next_dist.local();
     
@@ -37,7 +38,7 @@ VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_ne
         VertexId* neighbors = g.out_neighbors(u).local();
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            if (dist_next[v] == INT_MAX) {
+            if (dist_next[v] == INF) {
                 dist_next[v] = level;
                 frontier_next[v] = v;
             }
@@ -57,7 +58,7 @@ VertexId bfs_sparse(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_ne
     return frontier_size; 
 }
 
-void sync_round_dense_other(Graph& g, int* dist_next, bool* frontier_next) {  
+void sync_round_dense_other(Graph& g, Distance* dist_next, bool* frontier_next) {  
     for (VertexId i = 0; i < rank_n(); i++) {
         broadcast(dist_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
         broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
@@ -65,11 +66,11 @@ void sync_round_dense_other(Graph& g, int* dist_next, bool* frontier_next) {
     barrier();
 }
 
-void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_next_dist) {  
+void sync_round_dense(Graph& g, global_ptr<Distance> dist_next_dist, global_ptr<bool> frontier_next_dist) {  
     promise<> p;
-    int* dist_next = dist_next_dist.local();
+    Distance* dist_next = dist_next_dist.local();
     bool* frontier_next = frontier_next_dist.local();
-    global_ptr<int> dist_next_root = broadcast(dist_next_dist, 0).wait();
+    global_ptr<Distance> dist_next_root = broadcast(dist_next_dist, 0).wait();
     global_ptr<bool> frontier_next_root = broadcast(frontier_next_dist, 0).wait();
     rput(dist_next+g.rank_start, dist_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
     rput(frontier_next+g.rank_start, frontier_next_root+g.rank_start, g.rank_end-g.rank_start, operation_cx::as_promise(p));
@@ -87,10 +88,10 @@ void sync_round_dense(Graph& g, global_ptr<int> dist_next_dist, global_ptr<bool>
     barrier();
 }
 
-VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
+VertexId bfs_dense(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distance> dist_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
     auto time_1 = chrono::system_clock::now();
-    int* dist = dist_dist.local();
-    int* dist_next = dist_next_dist.local();
+    Distance* dist = dist_dist.local();
+    Distance* dist_next = dist_next_dist.local();
     bool* frontier = frontier_dist.local();
     bool* frontier_next = frontier_next_dist.local();
 
@@ -102,7 +103,7 @@ VertexId bfs_dense(Graph& g, global_ptr<int> dist_dist, global_ptr<int> dist_nex
 
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
         // ignore if distance is set already
-        if (dist_next[u] != INT_MAX) continue;
+        if (dist_next[u] != INF) continue;
         VertexId* neighbors = g.in_neighbors(u).local(); 
 
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
@@ -152,10 +153,10 @@ void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontie
     sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
 }
 
-int* bfs(Graph &g, VertexId root) {
+Distance* bfs(Graph &g, VertexId root) {
     // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
-    global_ptr<int> dist_dist = new_array<int>(g.num_nodes); int* dist = dist_dist.local();
-    global_ptr<int> dist_next_dist = new_array<int>(g.num_nodes); int* dist_next = dist_next_dist.local();
+    global_ptr<Distance> dist_dist = new_array<Distance>(g.num_nodes); Distance* dist = dist_dist.local();
+    global_ptr<Distance> dist_next_dist = new_array<Distance>(g.num_nodes); Distance* dist_next = dist_next_dist.local();
 
     global_ptr<VertexId> frontier_sparse_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse = frontier_sparse_dist.local();
     global_ptr<VertexId> frontier_sparse_next_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse_next = frontier_sparse_next_dist.local();
@@ -163,8 +164,8 @@ int* bfs(Graph &g, VertexId root) {
     global_ptr<bool> frontier_dense_dist = new_array<bool>(g.num_nodes); bool* frontier_dense = frontier_dense_dist.local();
     global_ptr<bool> frontier_dense_next_dist = new_array<bool>(g.num_nodes); bool* frontier_dense_next = frontier_dense_next_dist.local();
 
-    for (int i = 0; i < g.num_nodes; i++) {
-        dist[i] = INT_MAX;
+    for (VertexId i = 0; i < g.num_nodes; i++) {
+        dist[i] = INF;
     }
 
     bool is_sparse_mode = true;
@@ -221,7 +222,7 @@ bool verify(Graph& g, int root, vector<int> dist_in) {
         return false;
 
     for (int i = 0; i < g.num_nodes; i++)
-        dist[i] = INT_MAX; // set INF
+        dist[i] = INF; // set INF
 
     dist[root] = 0;
     int level = 1;
@@ -233,7 +234,7 @@ bool verify(Graph& g, int root, vector<int> dist_in) {
             vector<int> neighbors = g.out_neighbors(u);
             for (int j = 0; j < g.out_degree(u); j++) {
                 int v = neighbors[j];
-                if (dist[v] == INT_MAX) {
+                if (dist[v] == INF) {
                     next_frontier.push_back(v);
                     dist[v] = level;
                 }
@@ -267,15 +268,15 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
-        int root = 0; // rand() % g.num_nodes;
+        VertexId root = rand() % g.num_nodes;
         root = broadcast(root, 0).wait();
         auto time_before = std::chrono::system_clock::now();
-        int* dist = bfs(g, root);
+        Distance* dist = bfs(g, root);
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
         /*if (rank_me() == 0) {
-            for (int i = 0; i < g.num_nodes; i++)
+            for (VertexId i = 0; i < g.num_nodes; i++)
                 cout << dist[i] << endl;
         }*/
         barrier();

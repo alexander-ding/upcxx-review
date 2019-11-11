@@ -17,9 +17,9 @@ void sync_round_sparse(Graph& g, VertexId* labels_next, VertexId* frontier_next)
     barrier();
 }
 
-VertexId cc_sparse(Graph& g, global_ptr<int> labels_dist, global_ptr<int> labels_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
-    int* labels = labels_dist.local();
-    int* labels_next = labels_next_dist.local();
+VertexId cc_sparse(Graph& g, global_ptr<VertexId> labels_dist, global_ptr<VertexId> labels_next_dist, global_ptr<VertexId> frontier_dist, global_ptr<VertexId> frontier_next_dist, VertexId frontier_size, VertexId level) {
+    VertexId* labels = labels_dist.local();
+    VertexId* labels_next = labels_next_dist.local();
     VertexId* frontier = frontier_dist.local();
     VertexId* frontier_next = frontier_next_dist.local();
 
@@ -46,7 +46,7 @@ VertexId cc_sparse(Graph& g, global_ptr<int> labels_dist, global_ptr<int> labels
     return frontier_size; 
 }
 
-void sync_round_dense(Graph& g, int* labels_next, bool* frontier_next) {  
+void sync_round_dense(Graph& g, VertexId* labels_next, bool* frontier_next) {  
     for (VertexId i = 0; i < rank_n(); i++) {
         broadcast(labels_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
         broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
@@ -54,9 +54,9 @@ void sync_round_dense(Graph& g, int* labels_next, bool* frontier_next) {
     barrier();
 }
 
-VertexId cc_dense(Graph& g, global_ptr<int> labels_dist, global_ptr<int> labels_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
-    int* labels = labels_dist.local();
-    int* labels_next = labels_next_dist.local();
+VertexId cc_dense(Graph& g, global_ptr<VertexId> labels_dist, global_ptr<VertexId> labels_next_dist, global_ptr<bool> frontier_dist, global_ptr<bool> frontier_next_dist, VertexId level) {
+    VertexId* labels = labels_dist.local();
+    VertexId* labels_next = labels_next_dist.local();
     bool* frontier = frontier_dist.local();
     bool* frontier_next = frontier_next_dist.local();
 
@@ -106,10 +106,10 @@ void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontie
     sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
 }
 
-int* cc(Graph &g) {
+VertexId* cc(Graph &g) {
     // https://github.com/sbeamer/gapbs/blob/master/src/pr.cc
-    global_ptr<int> labels_dist = new_array<int>(g.num_nodes); int* labels = labels_dist.local();
-    global_ptr<int> labels_next_dist = new_array<int>(g.num_nodes); int* labels_next = labels_next_dist.local();
+    global_ptr<VertexId> labels_dist = new_array<VertexId>(g.num_nodes); VertexId* labels = labels_dist.local();
+    global_ptr<VertexId> labels_next_dist = new_array<VertexId>(g.num_nodes); VertexId* labels_next = labels_next_dist.local();
 
     global_ptr<VertexId> frontier_sparse_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse = frontier_sparse_dist.local();
     global_ptr<VertexId> frontier_sparse_next_dist = new_array<VertexId>(g.num_nodes); VertexId* frontier_sparse_next = frontier_sparse_next_dist.local();
@@ -117,7 +117,7 @@ int* cc(Graph &g) {
     global_ptr<bool> frontier_dense_dist = new_array<bool>(g.num_nodes); bool* frontier_dense = frontier_dense_dist.local();
     global_ptr<bool> frontier_dense_next_dist = new_array<bool>(g.num_nodes); bool* frontier_dense_next = frontier_dense_next_dist.local();
 
-    for (int i = 0; i < g.num_nodes; i++) {
+    for (VertexId i = 0; i < g.num_nodes; i++) {
         labels[i] = i;
         frontier_sparse[i] = i;
     }
@@ -182,12 +182,12 @@ int main(int argc, char *argv[]) {
     float current_time = 0.0;
     for (int i = 0; i < num_iters; i++) {
         auto time_before = std::chrono::system_clock::now();
-        int* labels = cc(g);
+        VertexId* labels = cc(g);
         auto time_after = std::chrono::system_clock::now();
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
         /* if (rank_me() == 0) {
-            for (int i = 0; i < g.num_nodes; i++)
+            for (VertexId i = 0; i < g.num_nodes; i++)
                 cout << labels[i] << endl;
         } */
         barrier();

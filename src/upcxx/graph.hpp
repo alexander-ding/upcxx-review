@@ -10,8 +10,9 @@
 using namespace std;
 using namespace upcxx;
 
-typedef int VertexId;
-typedef int EdgeId;
+typedef long VertexId;
+typedef long EdgeId;
+const long INF = LONG_MAX;
 
 class Graph {
     global_ptr<EdgeId> out_offsets_dist;
@@ -79,12 +80,13 @@ Graph::Graph(char *path) {
     out_offsets = out_offsets_dist.local();
     in_offsets = in_offsets_dist.local();
 
-    int offset, edge; 
-    int offset_start;
-    int offset_end = -1;
+    EdgeId offset;
+    VertexId edge; 
+    EdgeId offset_start;
+    EdgeId offset_end = -1;
 
     // loop through and ignore all non-local nodes
-    for (int i = 0; i < n; i++) {
+    for (VertexId i = 0; i < n; i++) {
         fin >> offset;
         if (i == rank_start) {
             offset_start = offset;
@@ -101,7 +103,7 @@ Graph::Graph(char *path) {
     out_edges_dist = new_array<VertexId>(num_out_edges_local);
     out_edges = out_edges_dist.local();
 
-    for (int i = 0; i < m; i++) {
+    for (EdgeId i = 0; i < m; i++) {
         fin >> edge;
         if (i >= offset_start && i < offset_end) {
             out_edges[i-offset_start] = edge;
@@ -109,7 +111,7 @@ Graph::Graph(char *path) {
     }
 
     // loop through and ignore all non-local nodes
-    for (int i = 0; i < n; i++) {
+    for (VertexId i = 0; i < n; i++) {
         fin >> offset;
         if (i == rank_start) {
             offset_start = offset;
@@ -125,7 +127,7 @@ Graph::Graph(char *path) {
     num_in_edges_local = offset_end - offset_start;
     in_edges_dist = new_array<VertexId>(num_in_edges_local);
     in_edges = in_edges_dist.local();
-    for (int i = 0; i < m; i++) {
+    for (EdgeId i = 0; i < m; i++) {
         fin >> edge;
         if (i >= offset_start && i < offset_end) {
             in_edges[i-offset_start] = edge;
@@ -145,7 +147,7 @@ EdgeId Graph::in_degree(const VertexId n)  {
     return in_offsets[(n-rank_start)+1] - in_offsets[n-rank_start];
 }
 
-EdgeId Graph::out_degree(const int n)  {
+EdgeId Graph::out_degree(const VertexId n)  {
     assert((n >= rank_start) && (n < rank_end));
     if ((n - rank_start) == (num_nodes_local-1)) {
         return num_out_edges_local - out_offsets[num_nodes_local-1];
@@ -153,12 +155,12 @@ EdgeId Graph::out_degree(const int n)  {
     return out_offsets[(n-rank_start)+1] - out_offsets[n-rank_start];
 }
 
-global_ptr<VertexId> Graph::in_neighbors(const int n) {
+global_ptr<VertexId> Graph::in_neighbors(const VertexId n) {
     assert((n >= rank_start) && (n < rank_end));
     return in_edges_dist + in_offsets[n-rank_start];
 }
 
-global_ptr<VertexId> Graph::out_neighbors(const int n) {
+global_ptr<VertexId> Graph::out_neighbors(const VertexId n) {
     assert((n >= rank_start) && (n < rank_end));
     return out_edges_dist + out_offsets[n-rank_start];
 }

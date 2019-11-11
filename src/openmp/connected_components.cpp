@@ -41,7 +41,7 @@ VertexId cc_sparse(Graph& g, VertexId* labels, VertexId* labels_next, VertexId* 
     return frontier_size;
 }
 
-int cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, bool* frontier_next, VertexId level) {
+VertexId cc_dense(Graph& g, VertexId* labels, VertexId* labels_next, bool* frontier, bool* frontier_next, VertexId level) {
     auto time_before = chrono::system_clock::now();
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
@@ -228,6 +228,7 @@ int main(int argc, char *argv[]) {
         /* if (!verify(g, labels)) {
             cerr << "Wrong!" << endl;
         } */
+        free(labels);
     }
 
     

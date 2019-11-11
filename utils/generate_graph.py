@@ -4,7 +4,10 @@ import argparse
 import os
 import subprocess
 from pathlib import Path
-from utils import check_cwd, mkdir_if_necessary, add_weights_graph, GRAPH_PATH, UTILS_PATH
+
+from utils import (GRAPH_PATH, UTILS_PATH, add_weights_graph, check_cwd,
+                   mkdir_if_necessary)
+
 
 def generate_graph(num_nodes, output_dir):
     temporary_graph = output_dir / f"{num_nodes}_temp.txt"
@@ -28,7 +31,7 @@ def convert_graph(input_dir, output_dir):
                     fout.write(line)
         with open(input_dir) as fin:
             for i, line in enumerate(fin):
-                if i != 0:
+                if i >= 3: # ignore header, n, and m
                     fout.write(line)
 
 def main(args):

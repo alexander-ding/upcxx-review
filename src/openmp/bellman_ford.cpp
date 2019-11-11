@@ -15,8 +15,6 @@
 
 using namespace std;
 
-const int THRESHOLD = 1000;
-
 #include "graph.hpp"
 #include "sequence.hpp"
 #include "utils.hpp"
@@ -34,7 +32,7 @@ void print_vector(const vector<T> & v) {
 
 struct nonNegF{bool operator() (VertexId a) {return (a>=0);}};
 
-VertexId bf_sparse(Graph& g, DistInt* dist, DistInt* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, VertexId level) {
+VertexId bf_sparse(Graph& g, Weight* dist, Weight* dist_next, VertexId* frontier, VertexId* frontier_next, VertexId frontier_size, VertexId level) {
     // update dist_next to take dist's values
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
@@ -46,10 +44,10 @@ VertexId bf_sparse(Graph& g, DistInt* dist, DistInt* dist_next, VertexId* fronti
     for (VertexId i = 0; i < frontier_size; i++) {
         VertexId u = frontier[i];
         VertexId* neighbors = g.out_neighbors(u);
-        int* weights = g.out_weights_neighbors(u);
+        Weight* weights = g.out_weights_neighbors(u);
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            DistInt relax_dist = dist[u] + weights[j];
+            Weight relax_dist = dist[u] + weights[j];
             if (priority_update(&dist_next[v], relax_dist)) {
                 frontier_next[v] = v;
             }
@@ -60,7 +58,7 @@ VertexId bf_sparse(Graph& g, DistInt* dist, DistInt* dist_next, VertexId* fronti
     return frontier_size;
 }
 
-VertexId bf_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* frontier_next, VertexId level) {
+VertexId bf_dense(Graph& g, Weight* dist, Weight* dist_next, bool* frontier, bool* frontier_next, VertexId level) {
     # pragma omp parallel for
     for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
@@ -68,7 +66,7 @@ VertexId bf_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* fro
         frontier_next[u] = false;
 
         VertexId* neighbors = g.in_neighbors(u);
-        int* weights = g.in_weights_neighbors(u); 
+        Weight* weights = g.in_weights_neighbors(u); 
 
         for (EdgeId j = 0; j < g.in_degree(u); j++) {
             VertexId v = neighbors[j];
@@ -76,7 +74,7 @@ VertexId bf_dense(Graph& g, int* dist, int* dist_next, bool* frontier, bool* fro
             // ignore neighbors not in frontier
             if (!frontier[v]) continue;
             
-            int relax_dist = dist[v]+weights[j];
+            Weight relax_dist = dist[v]+weights[j];
             if (relax_dist < dist_next[u]) {
                 dist_next[u] = relax_dist;
                 compare_and_compare_and_swap(&frontier_next[u]);
@@ -95,7 +93,7 @@ void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* fr
     }
 }
 
-void dense_to_sparse(bool* frontier_dense, int num_nodes, int* frontier_sparse) {
+void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontier_sparse) {
     # pragma omp parallel for
     for (VertexId i = 0; i < num_nodes; i++) {
         if (frontier_dense[i]) {
@@ -107,18 +105,18 @@ void dense_to_sparse(bool* frontier_dense, int num_nodes, int* frontier_sparse) 
     sequence::filter(frontier_sparse, frontier_sparse, num_nodes, nonNegF());
 }
 
-int* bellman_ford(Graph& g, int root) {
-    int* dist = newA(int, g.num_nodes);
-    int* dist_next = newA(int, g.num_nodes);
+Weight* bellman_ford(Graph& g, VertexId root) {
+    Weight* dist = newA(Weight, g.num_nodes);
+    Weight* dist_next = newA(Weight, g.num_nodes);
 
     VertexId* frontier_sparse = newA(VertexId, g.num_nodes);
     VertexId* frontier_sparse_next = newA(VertexId, g.num_nodes);
     bool* frontier_dense = newA(bool, g.num_nodes);
     bool* frontier_dense_next = newA(bool, g.num_nodes);
-
+    
     # pragma omp parallel for
-    for (int i = 0; i < g.num_nodes; i++) {
-        dist[i] = INT_MAX; // set INF
+    for (VertexId i = 0; i < g.num_nodes; i++) {
+        dist[i] = INF;
     }
 
     bool is_sparse_mode = true;
@@ -162,36 +160,36 @@ int* bellman_ford(Graph& g, int root) {
 }
 
 
-bool compare(int v1, int w, int v2) {
+bool compare(Weight v1, Weight w, Weight v2) {
     // checks if v1 + w < v2
-    if (v1 == INT_MAX) return false;
+    if (v1 == INF) return false;
     return ((v1+w) < v2);
 }
 
-bool verify(Graph& g, int root, int* input_dist) {
-    vector<int> dist(g.num_nodes);
-    vector<int> dist_next(g.num_nodes);
+bool verify(Graph& g, VertexId root, Weight* input_dist) {
+    vector<Weight> dist(g.num_nodes);
+    vector<Weight> dist_next(g.num_nodes);
     # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
-        dist[i] = INT_MAX; // set INF
-        dist_next[i] = INT_MAX;
+        dist[i] = INF;
+        dist_next[i] = INF;
     }
 
     dist[root] = 0;
     dist_next[root] = 0;
 
-    int round = 0;
+    Weight round = 0;
     bool updated_last_round = true;
     // relax procedure
     while (updated_last_round && round < g.num_nodes) {
 
         updated_last_round = false;
-        for (int u = 0; u < g.num_nodes; u++) {
+        for (VertexId u = 0; u < g.num_nodes; u++) {
             VertexId* neighbors = g.out_neighbors(u);
-            int* weights = g.out_weights_neighbors(u);
+            Weight* weights = g.out_weights_neighbors(u);
             for (VertexId j = 0; j < g.out_degree(u); j++) {
                 VertexId v = neighbors[j];
-                int weight = weights[j];
+                Weight weight = weights[j];
 
                 if (compare(dist[u], weight, dist_next[v])) { 
                     dist_next[v] = dist[u] + weight;
@@ -227,12 +225,13 @@ int main(int argc, char *argv[]) {
     float current_time = 0.0;
     srand(time(NULL));
     for (int i = 0; i < num_iters; i++) {
-        int root = 0; // rand() % g.num_nodes;
+        VertexId root = rand() % g.num_nodes;
         auto time_before = chrono::system_clock::now();
-        int* dists = bellman_ford(g, root);
+        Weight* dists = bellman_ford(g, root);
         auto time_after = chrono::system_clock::now();
         chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
+        free(dists);
         /*if (!verify(g, root, dists)) {
             cerr << "Wrong!" << endl;
         }*/

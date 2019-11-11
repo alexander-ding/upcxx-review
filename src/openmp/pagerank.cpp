@@ -124,6 +124,7 @@ int main(int argc, char *argv[]) {
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
         // verify(scores, g, max_iters);
+        free(scores);
     }
     std::cout << current_time / num_iters << std::endl;
     

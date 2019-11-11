@@ -59,7 +59,7 @@ double* pagerank(Graph &g, int num_iters) {
     global_ptr<double> outgoing_contrib_dist = new_array<double>(g.num_nodes); double* outgoing_contrib = outgoing_contrib_dist.local();
 
     double init_score = 1.0 / g.num_nodes;
-    for (int i = 0; i < g.num_nodes; i++) {
+    for (VertexId i = 0; i < g.num_nodes; i++) {
         scores[i] = init_score; // set init score
     }
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
         std::chrono::duration<double> delta_time = time_after - time_before;
         current_time += delta_time.count();
         /* if (rank_me() == 0) {
-            for (int i = 0; i < g.num_nodes; i++)
+            for (VertexId i = 0; i < g.num_nodes; i++)
                 cout << scores[i] << endl;
         } */
         barrier();

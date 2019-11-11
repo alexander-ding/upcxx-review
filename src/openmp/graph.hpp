@@ -5,12 +5,15 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <climits>
 #include "utils.hpp"
 
 using namespace std;
 
 typedef long VertexId;
 typedef long EdgeId; 
+
+const long INF = LONG_MAX;
 
 class Graph {
     EdgeId* out_offsets;

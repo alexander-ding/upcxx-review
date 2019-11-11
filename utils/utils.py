@@ -1,9 +1,14 @@
 import os
+import random
+import shutil
 from configparser import ConfigParser
+from os import mkdir
 from pathlib import Path
 
+import requests
+
 GRAPH_PATH = None
-SRC_PATH = None
+CODE_PATH = None
 UTILS_PATH = None
 
 def init():
@@ -14,7 +19,7 @@ def init():
     global UTILS_PATH
 
     GRAPH_PATH = Path(config.get("DEFAULT", "GraphPath"))
-    SRC_PATH = Path(config.get("DEFAULT", "CodePath"))
+    CODE_PATH = Path(config.get("DEFAULT", "CodePath"))
     UTILS_PATH = Path(config.get("DEFAULT", "CodePath")).parent / "utils" / "ligra" / "utils"
 
 init()
@@ -25,10 +30,6 @@ def check_cwd():
     if os.path.join(cws, "utils") != dir_path:
         raise Exception("generate_power_law_graphs.py must be run from the top-level directory of the repository")
 
-from os import mkdir
-from pathlib import Path
-import requests
-import shutil
 
 def mkdir_if_necessary(p):
     if not Path(p).exists():
@@ -42,7 +43,6 @@ def download_file(url, outfile):
 def url_to_name(url):
     return Path(url).stem
 
-import random
 
 def add_weights_graph(in_p, out_p):
     with open(in_p) as fin:
