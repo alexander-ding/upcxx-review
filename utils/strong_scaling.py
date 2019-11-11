@@ -1,4 +1,4 @@
-""" Generates random power-law graphs
+""" Runs strong scaling test on selected graphs
 """
 import argparse
 import json
@@ -39,33 +39,47 @@ def run(name, graph, kind, num_nodes, num_iters):
 
 algorithms = ['bfs', 'bellman_ford', 'pagerank', 'connected_components']
 
+def merge_jsons(old_json, new_json, args, graph_paths):
+    if args.kind not in old_json.keys():
+        old_json[args.kind] = {}
+    for algorithm in algorithms:
+        if algorithm not in old_json[args.kind].keys():
+            old_json[args.kind][algorithm] = {}
+        for graph in graph_paths:
+            if graph[-1] not in old_json[args.kind][algorithm].keys():
+                old_json[args.kind][algorithm][graph[-1]] = {}
+            num_nodes = args.num_nodes_min
+            while num_nodes <= args.num_nodes_max:
+                old_json[args.kind][algorithm][graph[-1]][num_nodes] = new_json[args.kind][algorithm][graph[-1]][num_nodes]
+                num_nodes *= 2
+    return old_json
+
 def main(args):
     graph_paths = get_graphs(args.graphs)
-    
-    if Path(args.output).exists():
-        output_json = json.load(open(args.output))
-    else:
-        output_json = {}
 
-    if args.kind not in output_json.keys():
-        output_json[args.kind] = {}
+    output_json = {}
+    output_json[args.kind] = {}
     for algorithm in algorithms:
-        if algorithm not in output_json[args.kind].keys():
-            output_json[args.kind][algorithm] = {}
+        output_json[args.kind][algorithm] = {}
         for graph in graph_paths:
-            if graph[-1] not in output_json[args.kind][algorithm].keys():
-                output_json[args.kind][algorithm][graph[-1]] = {}
+            output_json[args.kind][algorithm][graph[-1]] = {}
             num_nodes = args.num_nodes_min
             while num_nodes <= args.num_nodes_max:
                 runtime = run(algorithm, graph, args.kind, num_nodes, args.num_iters)
                 output_json[args.kind][algorithm][graph[-1]][num_nodes] = runtime
                 num_nodes *= 2
+
+    if Path(args.output).exists():
+        old_json = json.load(open(args.output))
+    else:
+        old_json = {}
+    output_json = merge_jsons(old_json, output_json, args, graph_paths)
     json.dump(output_json, open(args.output, mode='w'), indent=4, sort_keys=True)
 
 if __name__ == "__main__":
     check_cwd()
 
-    parser = argparse.ArgumentParser(description="Generates random power-law graphs")
+    parser = argparse.ArgumentParser(description="Runs strong scaling test on selected graphs")
     parser.add_argument('--graphs', type=str, required=True, nargs="+")
     parser.add_argument('--num_nodes_min', type=int, default=1)
     parser.add_argument('--num_nodes_max', type=int, default=32)

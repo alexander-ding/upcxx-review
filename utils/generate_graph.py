@@ -49,7 +49,7 @@ if __name__ == "__main__":
     check_cwd()
 
     parser = argparse.ArgumentParser(description="Generates random power-law graphs")
-    parser.add_argument('--n', type=int, default=100000)
+    parser.add_argument('--n', type=int, default=200000)
     parser.add_argument('--num_nodes_min', type=int, default=1)
     parser.add_argument('--num_nodes_max', type=int, default=32)
 
