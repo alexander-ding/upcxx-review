@@ -68,7 +68,6 @@ VertexId bfs_dense(Graph& g, Distance* dist, Distance* dist_next, bool* frontier
             dist_next[u] = level;
             frontier_next[u] = true;
         }
-        if (u % 10000 == 0) cout << "So far so good" << endl;
     }
 
     
