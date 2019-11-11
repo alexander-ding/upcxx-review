@@ -42,7 +42,7 @@ class Parser:
 
     def _parse_unweighted(self):
         self._get_if_necessary()
-        command = f"bash -c '{UTILS_PATH}/SNAPtoAdj -s {self.raw_file} {self.temporary_file}'"
+        command = f"{UTILS_PATH}/SNAPtoAdj -s {self.raw_file} {self.temporary_file}"
         print(command)
         output = subprocess.check_output(command, shell=True)
         convert_graph(self.temporary_file, self.unweighted_parsed_file)
