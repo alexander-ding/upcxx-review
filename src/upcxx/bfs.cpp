@@ -61,7 +61,7 @@ VertexId bfs_sparse(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distanc
 }
 
 void sync_round_dense(Graph& g, Distance* dist_next, bool* frontier_next) {  
-    # pragma omp parallel for
+    // # pragma omp parallel for
     for (VertexId i = 0; i < rank_n(); i++) {
         broadcast(dist_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
         broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
