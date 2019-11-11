@@ -56,15 +56,18 @@ class Parser:
             return
         
         download_path = self.raw_file.parent / Path(self.url).parts[-1]
-        print("Preexisting file {} not found. Downloading to {}...".format(self.raw_file, download_path))
-        download_file(self.url, download_path)
+        if not download_file.exists():
+            print("Preexisting file {} not found. Downloading to {}...".format(self.raw_file, download_path))
+            download_file(self.url, download_path)
+            print("...Done")
     
         self._unzip(download_path)
-        print("...Done")
+        
 
     def _unzip(self, f):
         """ Unzips the downloaded file
         """
+        print("Extracting {}".format(f.absolute()))
         os.system("gzip -d {}".format(f.absolute()))
 
 
