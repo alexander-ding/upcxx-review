@@ -55,7 +55,7 @@ class Parser:
         if self.raw_file.exists():
             return
         
-        download_path = self.raw_file.parent / Path(self.url).parts[-1]
+        download_path = self.raw_file.parent() / Path(self.url).parts[-1]
         if not download_file.exists():
             print("Preexisting file {} not found. Downloading to {}...".format(self.raw_file, download_path))
             download_file(self.url, download_path)
