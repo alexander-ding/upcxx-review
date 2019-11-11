@@ -6,7 +6,6 @@
 #include <stdlib.h> 
 #include <time.h>
 #include "sequence.hpp"
-#include <omp.h>
 
 using namespace upcxx;
 typedef VertexId Distance;
@@ -28,20 +27,19 @@ VertexId bfs_sparse(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distanc
     VertexId* frontier = frontier_dist.local();
     VertexId* frontier_next = frontier_next_dist.local();
     
-    # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
         dist_next[i] = dist[i];
         frontier_next[i] = -1;
     }
 
-    # pragma omp parallel for
     for (VertexId i = 0; i < frontier_size; i++) {
         VertexId u = frontier[i];
         if (!(g.rank_start <= u && u < g.rank_end)) continue;
         VertexId* neighbors = g.out_neighbors(u).local();
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            if (compare_and_swap(&dist_next[v], INF, level)) {
+            if (dist_next[v] == INF) {
+                dist_next[v] = level;
                 frontier_next[v] = v;
             }
         }
@@ -61,7 +59,6 @@ VertexId bfs_sparse(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distanc
 }
 
 void sync_round_dense(Graph& g, Distance* dist_next, bool* frontier_next) {  
-    // # pragma omp parallel for
     for (VertexId i = 0; i < rank_n(); i++) {
         broadcast(dist_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
         broadcast(frontier_next+g.rank_start_node(i), g.rank_num_nodes(i), i).wait();
@@ -76,14 +73,12 @@ VertexId bfs_dense(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distance
     bool* frontier = frontier_dist.local();
     bool* frontier_next = frontier_next_dist.local();
 
-    # pragma omp parallel for
     for (VertexId u = 0; u < g.num_nodes; u++) {
         // update next round of dist
         dist_next[u] = dist[u];
         frontier_next[u] = false;
     }
 
-    # pragma omp parallel for
     for (VertexId u = g.rank_start; u < g.rank_end; u++) {
         // ignore if distance is set already
         if (dist_next[u] != INF) continue;
@@ -116,14 +111,12 @@ VertexId bfs_dense(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distance
 
 
 void sparse_to_dense(VertexId* frontier_sparse, VertexId frontier_size, bool* frontier_dense) {
-    # pragma omp parallel for
     for (VertexId i = 0; i < frontier_size; i++) {
         frontier_dense[frontier_sparse[i]] = true;
     }
 }
 
 void dense_to_sparse(bool* frontier_dense, VertexId num_nodes, VertexId* frontier_sparse) {
-    # pragma omp parallel for
     for (VertexId i = 0; i < num_nodes; i++) {
         if (frontier_dense[i]) {
             frontier_sparse[i] = i;
@@ -145,7 +138,6 @@ Distance* bfs(Graph &g, VertexId root) {
     global_ptr<bool> frontier_dense_dist = new_array<bool>(g.num_nodes); bool* frontier_dense = frontier_dense_dist.local();
     global_ptr<bool> frontier_dense_next_dist = new_array<bool>(g.num_nodes); bool* frontier_dense_next = frontier_dense_next_dist.local();
 
-    # pragma omp parallel for
     for (VertexId i = 0; i < g.num_nodes; i++) {
         dist[i] = INF;
     }
@@ -199,13 +191,10 @@ Distance* bfs(Graph &g, VertexId root) {
 /*
 bool verify(Graph& g, int root, vector<int> dist_in) {
     vector<int> dist(g.num_nodes);
-
     if (dist.size() != dist_in.size())
         return false;
-
     for (int i = 0; i < g.num_nodes; i++)
         dist[i] = INF; // set INF
-
     dist[root] = 0;
     int level = 1;
     vector<int> frontier, next_frontier;
@@ -226,7 +215,6 @@ bool verify(Graph& g, int root, vector<int> dist_in) {
         next_frontier.clear();
         level += 1; 
     }
-
     for (int i = 0; i < dist.size(); i++) {
         if (dist[i] != dist_in[i]) {
             return false;
