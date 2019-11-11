@@ -31,7 +31,7 @@ all: $(PROGRAMS)
 
 # The rule for building any example.
 %: %.cpp $(wildcard *.h) $(wildcard *.hpp)
-	$(CXX) $@.cpp $(EXTRA_FLAGS) -o $@
+	$(CXX) $@.cpp $(EXTRA_FLAGS) $(OPENMP_FLAGS) -o $@
 
 clean:
 	rm -f $(PROGRAMS)
