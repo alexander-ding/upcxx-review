@@ -41,7 +41,7 @@ VertexId bfs_sparse(Graph& g, global_ptr<Distance> dist_dist, global_ptr<Distanc
         VertexId* neighbors = g.out_neighbors(u).local();
         for (EdgeId j = 0; j < g.out_degree(u); j++) {
             VertexId v = neighbors[j];
-            if (compare_and_swap(&dist_next[v], INF, level) {
+            if (compare_and_swap(&dist_next[v], INF, level)) {
                 frontier_next[v] = v;
             }
         }
