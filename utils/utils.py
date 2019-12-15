@@ -20,8 +20,8 @@ def init():
     global CODE_PATH
     global UTILS_PATH
 
-    GRAPH_PATH_TEST = Path(config.get("DEFAULT", "GraphPathTest"))
-    GRAPH_PATH_PRODUCTION = Path(config.get("DEFAULT", "GraphPathProduction"))
+    GRAPH_PATH_TEST = Path(os.path.expandvars(config.get("DEFAULT", "GraphPathTest")))
+    GRAPH_PATH_PRODUCTION = Path(os.path.expandvars(config.get("DEFAULT", "GraphPathProduction")))
     
     CODE_PATH = Path(config.get("DEFAULT", "CodePath"))
     UTILS_PATH = Path(config.get("DEFAULT", "CodePath")).parent / "utils" / "ligra" / "utils"
