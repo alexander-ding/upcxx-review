@@ -32,7 +32,7 @@ def run(name, graph, kind, num_nodes, num_iters):
     if kind == "openmp":
         command = "OMP_NUM_THREADS={} CODE_MODE=PRODUCTION {}".format(num_nodes, (CODE_PATH / "openmp" / run_command).absolute())
     else:
-        command = "CODE_MODE=PRODUCTION {}/bin/upcxx-run -n {} -shared-heap 4G {}".format(os.environ['UPCXX_INSTALL'], num_nodes, (CODE_PATH / "upcxx" / run_command).absolute())
+        command = "CODE_MODE=PRODUCTION {}/bin/upcxx-run -n {} -N {} -shared-heap 4G {}".format(os.environ['UPCXX_INSTALL'], num_nodes, num_nodes, (CODE_PATH / "upcxx" / run_command).absolute())
     print(command)
     output = subprocess.check_output(command, shell=True)
     result = float(output.decode("utf-8")[:-1].split("\n")[-1])
