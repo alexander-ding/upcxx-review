@@ -6,12 +6,14 @@ import os
 import subprocess
 from pathlib import Path
 
-from utils import (CODE_PATH, GRAPH_PATH, UTILS_PATH, add_weights_graph,
-                   check_cwd, mkdir_if_necessary)
+from utils import (CODE_PATH, GRAPH_PATH_PRODUCTION, GRAPH_PATH_TEST,
+                   UTILS_PATH, add_weights_graph, check_cwd,
+                   mkdir_if_necessary)
 
 
-def get_graphs(graphs):
+def get_graphs(graphs, is_production):
     graph_paths = []
+    GRAPH_PATH = GRAPH_PATH_PRODUCTION if is_production else GRAPH_PATH_TEST
     for graph in graphs:
         folder, filename = graph.split("/")
         graph_path = GRAPH_PATH / folder / "unweighted" / filename
@@ -55,7 +57,7 @@ def merge_jsons(old_json, new_json, args, graph_paths):
     return old_json
 
 def main(args):
-    graph_paths = get_graphs(args.graphs)
+    graph_paths = get_graphs(args.graphs, args.is_production)
 
     output_json = {}
     output_json[args.kind] = {}
@@ -86,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_iters', type=int, default=4)
     parser.add_argument('--kind', type=str, default='openmp')
     parser.add_argument('--output', type=str, default='strong_scaling.json')
+    parser.add_argument('--is_production', type=bool, default=False)
 
     args = parser.parse_args()
 

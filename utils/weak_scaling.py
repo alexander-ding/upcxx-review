@@ -6,13 +6,15 @@ import os
 import subprocess
 from pathlib import Path
 
-from utils import (CODE_PATH, GRAPH_PATH, UTILS_PATH, add_weights_graph,
-                   check_cwd, mkdir_if_necessary)
+from utils import (CODE_PATH, GRAPH_PATH_PRODUCTION, GRAPH_PATH_TEST,
+                   UTILS_PATH, add_weights_graph, check_cwd,
+                   mkdir_if_necessary)
 
 
 def get_graphs(args):
     graph_paths = {}
     num_nodes = args.num_nodes_min
+    GRAPH_PATH = GRAPH_PATH_PRODUCTION if args.is_production else GRAPH_PATH_TEST
     while num_nodes <= args.num_nodes_max:
         graph_path = GRAPH_PATH / "powerlaw" / "unweighted" / f"{num_nodes*args.n}.txt"
         graph_path_weighted = GRAPH_PATH / "powerlaw" / "weighted" / f"{num_nodes*args.n}.txt"
@@ -86,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_iters', type=int, default=4)
     parser.add_argument('--kind', type=str, default='openmp')
     parser.add_argument('--output', type=str, default='weak_scaling.json')
+    parser.add_argument('--is_production', type=bool, default=False)
 
     args = parser.parse_args()
 

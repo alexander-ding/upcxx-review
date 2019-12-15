@@ -7,18 +7,22 @@ from pathlib import Path
 
 import requests
 
-GRAPH_PATH = None
+GRAPH_PATH_TEST = None
+GRAPH_PATH_PRODUCTION = None
 CODE_PATH = None
 UTILS_PATH = None
 
 def init():
     config = ConfigParser()
     config.read("config.ini")
-    global GRAPH_PATH
+    global GRAPH_PATH_TEST
+    global GRAPH_PATH_PRODUCTION
     global CODE_PATH
     global UTILS_PATH
 
-    GRAPH_PATH = Path(config.get("DEFAULT", "GraphPath"))
+    GRAPH_PATH_TEST = Path(config.get("DEFAULT", "GraphPathTest"))
+    GRAPH_PATH_PRODUCTION = Path(config.get("DEFAULT", "GraphPathProduction"))
+    
     CODE_PATH = Path(config.get("DEFAULT", "CodePath"))
     UTILS_PATH = Path(config.get("DEFAULT", "CodePath")).parent / "utils" / "ligra" / "utils"
 
