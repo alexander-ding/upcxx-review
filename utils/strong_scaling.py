@@ -88,7 +88,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_iters', type=int, default=4)
     parser.add_argument('--kind', type=str, default='openmp')
     parser.add_argument('--output', type=str, default='strong_scaling.json')
-    parser.add_argument('--is_production', type=bool, default=False)
+    parser.add_argument('--production', dest='is_production', action='store_true')
+    parser.set_defaults(is_production=False)
 
     args = parser.parse_args()
 

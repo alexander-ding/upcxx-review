@@ -15,6 +15,7 @@ def get_graphs(args):
     graph_paths = {}
     num_nodes = args.num_nodes_min
     GRAPH_PATH = GRAPH_PATH_PRODUCTION if args.is_production else GRAPH_PATH_TEST
+    print(args.is_production)
     while num_nodes <= args.num_nodes_max:
         graph_path = GRAPH_PATH / "powerlaw" / "unweighted" / f"{num_nodes*args.n}.txt"
         graph_path_weighted = GRAPH_PATH / "powerlaw" / "weighted" / f"{num_nodes*args.n}.txt"
@@ -88,7 +89,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_iters', type=int, default=4)
     parser.add_argument('--kind', type=str, default='openmp')
     parser.add_argument('--output', type=str, default='weak_scaling.json')
-    parser.add_argument('--is_production', type=bool, default=False)
+    parser.add_argument('--production', dest='is_production', action='store_true')
+    parser.set_defaults(is_production=False)
 
     args = parser.parse_args()
 
