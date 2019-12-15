@@ -18,6 +18,7 @@ def get_graphs(args):
     print(args.is_production)
     while num_nodes <= args.num_nodes_max:
         graph_path = GRAPH_PATH / "powerlaw" / "unweighted" / f"{num_nodes*args.n}.txt"
+        print(graph_path)
         graph_path_weighted = GRAPH_PATH / "powerlaw" / "weighted" / f"{num_nodes*args.n}.txt"
         assert graph_path.exists()
         graph_paths[num_nodes] = [graph_path, graph_path_weighted, f"{num_nodes*args.n}.txt"]
