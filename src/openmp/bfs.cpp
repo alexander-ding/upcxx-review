@@ -127,7 +127,7 @@ Distance* bfs(Graph& g, VertexId root) {
 
         if (should_be_sparse_mode) {
             if (!is_sparse_mode) {
-                dense_to_sparse(frontier_dense_next, g.num_nodes, frontier_sparse);
+                dense_to_sparse(frontier_dense, g.num_nodes, frontier_sparse);
             }
             is_sparse_mode = true;
             frontier_size = bfs_sparse(g, dist, dist_next, frontier_sparse, frontier_sparse_next, frontier_size, level);
